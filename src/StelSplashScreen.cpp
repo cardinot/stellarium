@@ -66,6 +66,7 @@ void SplashScreen::clearMessage()
 
 SplashScreen::SplashScreenWidget::SplashScreenWidget(QPixmap const& pixmap, const double sizeRatio)
 	: QSplashScreen(pixmap)
+	, sizeRatio(sizeRatio)
 {
 	splashFont.setPixelSize(std::lround(BASE_FONT_SIZE * sizeRatio));
 
@@ -100,6 +101,31 @@ void SplashScreen::SplashScreenWidget::paintEvent(QPaintEvent* event)
 	p.setFont(versionFont);
 	p.drawText(365 - versionMetrics.horizontalAdvance(version), 293, version);
 #endif
+
+	// Add branding text: "Stellarium" in large bold font centered horizontally,
+	// and "stellarium.org" under it in a smaller font, both aligned to each
+	// other on the right side.
+	QFont font("Sans");
+	font.setPixelSize(55 * sizeRatio);
+	font.setStretch(QFont::SemiCondensed);
+	font.setWeight(QFont::Bold);
+	p.setFont(font);
+	static const QString titleText = "Stellarium";
+	const QFontMetrics titleFM(font);
+	auto titleBR = titleFM.tightBoundingRect(titleText);
+	const QPoint titlePos((width() - titleBR.width()) / 2,
+	                      std::lround(height() * 0.89));
+	titleBR.translate(titlePos);
+	p.drawText(titlePos, titleText);
+	font.setWeight(QFont::Normal);
+	font.setPixelSize(18 * sizeRatio);
+	p.setFont(font);
+	static const QString subtitleText = "stellarium.org";
+	const QFontMetrics subtitleFM(font);
+	const auto subtitleBR = subtitleFM.tightBoundingRect(subtitleText);
+	p.drawText(QPoint(titleBR.right() - subtitleBR.width() - 1,
+	                  titleBR.bottom() + subtitleBR.height()),
+	           subtitleText);
 
 	painted=true;
 }
