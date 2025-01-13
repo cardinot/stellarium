@@ -1,0 +1,526 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: 1.0\n"
+"Last-Translator: (unknown)\n"
+"Language-Team: (unknown)\n"
+"Language: es_419\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "Aquila"
+msgstr "Águila"
+
+msgid "Aries"
+msgstr "Aries"
+
+msgid "Taurus"
+msgstr "Tauro"
+
+msgid "Gemini"
+msgstr "Géminis"
+
+msgid "Cancer"
+msgstr "Cáncer"
+
+msgid "Virgo"
+msgstr "Virgo"
+
+msgid "Libra"
+msgstr "Libra"
+
+msgid "Scorpius"
+msgstr "Escorpión"
+
+msgid "Sagittarius"
+msgstr "Sagitario"
+
+msgid "Capricornus"
+msgstr "Capricornio"
+
+msgid "Aquarius"
+msgstr "Acuario"
+
+msgid "Pisces"
+msgstr "Pisces"
+
+msgid "Ear of Grain"
+msgstr "Oreja de Grain"
+
+msgid "King"
+msgstr "Rey"
+
+msgid "Ewe"
+msgstr "Oveja"
+
+msgid "Fox"
+msgstr "Zorro"
+
+msgid "Thigh of Bull"
+msgstr "Muslo del Toro"
+
+msgid "Hathor Cow (Egypt.)"
+msgstr "Vaca Hathor (Egipto)"
+
+msgid "Canopus (Egypt.)"
+msgstr "Canopus (Egipto)"
+
+msgid "Goddess Satis"
+msgstr "Diosa Satis"
+
+msgid "Field (Sum.)"
+msgstr "Campo (Sum.)"
+
+msgid "Leo + Berenike(?)"
+msgstr "Leo + Berenike(?)"
+
+msgid "King Osiris"
+msgstr "Rey Osiris"
+
+msgid "Hydra and Corvus"
+msgstr "Hydra y Corvus"
+
+msgid "Babylonian Rooster"
+msgstr "Gallo Babilónico"
+
+msgid "? (Egypt.)"
+msgstr "? (Egipto)"
+
+msgid " ? "
+msgstr " ? "
+
+msgid "Guard (Arkturos)"
+msgstr "Guardia (Arturo)"
+
+msgid "Goat (Capella)"
+msgstr "Cabra (Capella)"
+
+msgid "Baboon"
+msgstr "Babuino"
+
+msgid "Falcon"
+msgstr "Halcón"
+
+msgid "Cyg/ Cep"
+msgstr "Cyg/ Cep"
+
+msgid "Cas"
+msgstr "Cas"
+
+msgid "Sum. Corpse Egyptized"
+msgstr "Sum. Gula Egipciado"
+
+msgid "Min-Pan"
+msgstr "Min-Pan"
+
+msgid "Mother Goddess Isis"
+msgstr "Diosa Madre Isis"
+
+msgid "Goddess Anuket"
+msgstr "Diosa Anuket"
+
+msgid "Chenti Irti"
+msgstr "Chenti Irti"
+
+msgid "Beast"
+msgstr "Bestia"
+
+msgid "Kanobos/Canopus"
+msgstr "Kanobos/Canopus"
+
+msgid "Scorpion's Heart"
+msgstr "Corazón del Escorpión"
+
+msgid "The Guard"
+msgstr "El Guardia"
+
+#. TRANSLATORS: Native name of Venus in Egyptian culture
+msgid "Phoenix Bird"
+msgstr "Ave Fénix"
+
+#. TRANSLATORS: Native name of Mercury in Egyptian culture
+msgid "Seth in the Twilight"
+msgstr "Seth en el crepúsculo"
+
+#. TRANSLATORS: Native name of Jupiter in Egyptian culture
+msgid "Horus the merchant"
+msgstr "Horus el mercante"
+
+#. TRANSLATORS: Native name of Mars in Egyptian culture
+msgid "Horus the red one"
+msgstr "Horus el rojo"
+
+#. TRANSLATORS: Native name of Saturn in Egyptian culture
+msgid "Horus the bull"
+msgstr "Horus el toro"
+
+#. TRANSLATORS: Native name of the Sun in Egyptian culture
+msgid "Aten"
+msgstr "Aten"
+
+#. TRANSLATORS: Native name of the Moon in Egyptian culture
+msgid "Aah"
+msgstr "Aah"
+
+msgid "Bird"
+msgstr "Pájaro"
+
+msgid "Perseus"
+msgstr "Perseo"
+
+msgid "The nebulous star to the rear of the sting"
+msgstr "‎La ‎‎estrella‎‎ nebulosa en la parte trasera del aguijón"
+
+msgid "The nebulous mass on the right hand"
+msgstr "La masa nebulosa en la mano derecha"
+
+msgid "The star on the place where the back joins [the horse's body]"
+msgstr ""
+"La estrella en el lugar donde la espalda se une [al cuerpo del caballo]"
+
+msgid "The middle of the nebulous mass in the chest, called Praesepe"
+msgstr "La mitad de la masa nebulosa en el pecho, llamada Praesepe"
+
+msgid "Crab"
+msgstr "Cangrejo"
+
+msgid "Dog"
+msgstr "Perro"
+
+msgid "Horse"
+msgstr "Caballo"
+
+msgid "Arrow"
+msgstr "Flecha"
+
+msgid "Raven"
+msgstr "Cuervo"
+
+msgid "Eagle"
+msgstr "Águila"
+
+msgid "Scorpion"
+msgstr "Escorpio"
+
+msgid "Twins"
+msgstr "Gemelos"
+
+msgid "Triangle"
+msgstr "Triángulo"
+
+msgid "Lion"
+msgstr "León"
+
+msgid "Dragon"
+msgstr "Dragón"
+
+msgid "King Kepheus"
+msgstr "Rey Cefeo"
+
+msgid "Ploughman"
+msgstr "Arador"
+
+msgid "Crown"
+msgstr "Corona"
+
+msgid "Kneeler"
+msgstr "Reclinatorio"
+
+msgid "Lyre"
+msgstr "Lira"
+
+msgid "Queen Kassiepeia"
+msgstr "Reina Casiopea"
+
+msgid "Charioteer"
+msgstr "Auriga"
+
+msgid "Serpent Bearer"
+msgstr "Portador de la serpiente"
+
+msgid "Snake"
+msgstr "Serpiente"
+
+msgid "Dolphin"
+msgstr "Delfín"
+
+msgid "Bust [of a Horse]"
+msgstr "Busto [de un Caballo]"
+
+msgid "Princess Andromeda"
+msgstr "Princesa Andrómeda"
+
+msgid "Ram"
+msgstr "Carnero"
+
+msgid "Bull"
+msgstr "Toro"
+
+msgid "Maiden"
+msgstr "Doncella"
+
+msgid "Claws [of Scorpion]"
+msgstr "Garras [de Escorpio]"
+
+msgid "Archer"
+msgstr "Arquero"
+
+msgid "The One with the Goat's Horn"
+msgstr "El del Cuerno de la Cabra"
+
+msgid "Water-carrier"
+msgstr "Portador del Agua"
+
+msgid "Fishes"
+msgstr "Peces"
+
+msgid "Sea Monster"
+msgstr "Monstruo marino"
+
+msgid "Hero Orion"
+msgstr "Héroe Orión"
+
+msgid "River"
+msgstr "Río"
+
+msgid "Hare"
+msgstr "Liebre"
+
+msgid "The Ship Argo"
+msgstr "La nave Argo"
+
+msgid "Water Snake"
+msgstr "Serpiente marina"
+
+msgid "Vessel"
+msgstr "Barco"
+
+msgid "Kentaur"
+msgstr "Centauro"
+
+msgid "Altar"
+msgstr "Altar"
+
+msgid "Southern Crown"
+msgstr "Corona Austral"
+
+msgid "Southern Fish"
+msgstr "Pez Austral"
+
+msgid "The Lock [in Leo]"
+msgstr "La Cerradura [en Leo]"
+
+msgid "φάτνη (Manger)"
+msgstr "φάτνη (Pesebre)"
+
+msgid "Πλειάδες (Pleiades)"
+msgstr "Πλειάδες (Pléyades)"
+
+msgid "Tau 30-33"
+msgstr "Tau 30-33"
+
+msgid "ʿΥάδες (Hyades)"
+msgstr "ʿΥάδες (Híades)"
+
+msgid "Tau 11-15"
+msgstr "Tau 11-15"
+
+msgid "πλόκαμος (Coma)"
+msgstr "πλόκαμος (Coma)"
+
+msgid "Leo 33"
+msgstr "Leo 33"
+
+msgid "sco 22"
+msgstr "sco 22"
+
+msgid "Small She-Bear"
+msgstr "Osa Pequeña"
+
+msgid "Great She-Bear"
+msgstr "Osa Grande"
+
+msgid "Left Hand of the Atlas Statue"
+msgstr "‎Mano izquierda de la estatua de Atlas‎"
+
+msgid "Right Hand of the Atlas Statue"
+msgstr "‎Mano derecha de la estatua de Atlas‎"
+
+msgid "special feature: unclear"
+msgstr "función especial: no clara"
+
+msgid "Hole-backed Caiman"
+msgstr "Caimán con orificio"
+
+msgid "Turtle"
+msgstr "Tortuga"
+
+msgid "Primordial Fire"
+msgstr "Fuego primordial"
+
+msgid "Peccaries"
+msgstr "Pecaríes"
+
+msgid "Shark"
+msgstr "Tiburón"
+
+msgid "Paddler Gods"
+msgstr "Dioses palistas"
+
+msgid "Bat"
+msgstr "Murciélago"
+
+msgid "Owl"
+msgstr "Búho"
+
+msgid "Vulture"
+msgstr "Buitre"
+
+msgid "Death"
+msgstr "Muerte"
+
+msgid "Jaguar"
+msgstr "Jaguar"
+
+msgid "Toad"
+msgstr "Sapo"
+
+msgid "Single Star"
+msgstr "Estrella sencilla"
+
+msgid "Two brilliant ones"
+msgstr "Dos brillantes"
+
+msgid "Corner Star"
+msgstr "Estrella esquinera"
+
+#. TRANSLATORS: Native name of Venus in Maya culture
+msgid "Bright Star"
+msgstr "Estrella brillante"
+
+msgid "The Arrow"
+msgstr "La Flecha"
+
+msgid "The Jaguar"
+msgstr "El Jaguar"
+
+msgid "The Monkey"
+msgstr "El Mono"
+
+msgid "The Warrior"
+msgstr "El Guerrero"
+
+msgid "The Frog"
+msgstr "La Rana"
+
+msgid "Zaamth (Crab)"
+msgstr "Zaamth (Cangrejo)"
+
+msgid "Cohamc (The wife and husband)"
+msgstr "Cohamc (La esposa y el esposo)"
+
+msgid "Haapjc (The deer hunter)"
+msgstr "Haapjc (El cazador de ciervos)"
+
+msgid "Caamoilcoj (Wheel game)"
+msgstr "Caamoilcoj (Juego de rueda)"
+
+msgid "Haacosah (Pitahayas cutter)"
+msgstr "Haacosah (Cortador de pitayas)"
+
+msgid "Hazoj canoj (He who comes at sunrise)"
+msgstr "Hazoj canoj (El que viene al amanecer)"
+
+msgid "Yay xapi hanopas (Young hunter)"
+msgstr "Yay xapi hanopas (Cazador joven)"
+
+msgid "Quetoh (Small dove)"
+msgstr "Quetoh (Paloma pequeña)"
+
+msgid "Coozactim (Hunter)"
+msgstr "Coozactim (Cazador)"
+
+msgid "Hap (Deer)"
+msgstr "Hap (Ciervo)"
+
+msgid "Hee (Hare)"
+msgstr "Hee (Liebre)"
+
+msgid "Hazoj Koii (Person)"
+msgstr "Hazoj Koii (Persona)"
+
+msgid "Hazoj Himatax (Polar star)"
+msgstr "Hazoj Himatax (Estrella polar)"
+
+msgid "Haacoosah"
+msgstr "Haacoosah"
+
+msgid "Himatax"
+msgstr "Himatax"
+
+msgid "Haxl'c"
+msgstr "Haxl'c"
+
+msgid "Heepem"
+msgstr "Heepem"
+
+msgid "Coozactim"
+msgstr "Coozactim"
+
+msgid "Hap"
+msgstr "Hap"
+
+msgid "Zaamth"
+msgstr "Zaamth"
+
+msgid "Yay Hapi Hanopas"
+msgstr "Yay Hapi Hanopas"
+
+msgid "Caanooj Haantificaö"
+msgstr "Caanooj Haantificaö"
+
+msgid "Naapxah"
+msgstr "Naapxah"
+
+msgid "Hiasim"
+msgstr "Hiasim"
+
+msgid "Coamc"
+msgstr "Coamc"
+
+msgid "Coohaamc"
+msgstr "Coohaamc"
+
+msgid "Coam'c"
+msgstr "Coam'c"
+
+msgid "Caamooiilcooj"
+msgstr "Caamooiilcooj"
+
+msgid "Camoilcoj"
+msgstr "Camoilcoj"
+
+msgid "Quetoh"
+msgstr "Quetoh"
+
+msgid "Hazoj Cöiiqui"
+msgstr "Hazoj Cöiiqui"
+
+msgid "Hazoj Köii"
+msgstr "Hazoj Köii"
+
+msgid "Hee"
+msgstr "Hee"
+
+msgid "Turtle Collective"
+msgstr "Colectivo Tortuga"
+
+msgid "Wücütcha's leg"
+msgstr "Pierna de Wücütcha"
+
+msgid "Cayman’s Jaw"
+msgstr "Mandíbula del Caimán"
+
+msgid "Anteater’s Jaguar"
+msgstr "Jaguar del Oso Hormiguero"
