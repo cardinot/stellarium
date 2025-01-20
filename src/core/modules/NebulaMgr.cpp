@@ -1836,14 +1836,32 @@ void NebulaMgr::updateSkyCulture(const StelSkyCulture& skyCulture)
 
 	const auto nameToIdMap = loadCommonNames(skyCulture.fallbackToInternationalNames);
 
+	int numLoaded = 0;
 	if (!skyCulture.names.isEmpty())
-		loadCultureSpecificNames(skyCulture.names, nameToIdMap);
+		numLoaded = loadCultureSpecificNames(skyCulture.names, nameToIdMap);
+
+	if (numLoaded)
+	{
+		qDebug() << "Loaded" << numLoaded << "culture-specific DSO names";
+	}
+	else
+	{
+		QString setName = "default";
+		QString dsoNamesPath = StelFileMgr::findFile("nebulae/" + setName + "/names.dat");
+		if (dsoNamesPath.isEmpty())
+		{
+			qWarning().noquote() << "ERROR while loading deep-sky names data set" << setName;
+			return;
+		}
+		loadDSONames(dsoNamesPath);
+	}
 
 	updateI18n();
 }
 
-void NebulaMgr::loadCultureSpecificNames(const QJsonObject& data, const QMap<QString/*name*/,QString/*dsoId*/>& commonNameToIdMap)
+int NebulaMgr::loadCultureSpecificNames(const QJsonObject& data, const QMap<QString/*name*/,QString/*dsoId*/>& commonNameToIdMap)
 {
+	int loadedTotal = 0;
 	for (auto it = data.begin(); it != data.end(); ++it)
 	{
 		const auto key = it.key();
@@ -1890,6 +1908,7 @@ void NebulaMgr::loadCultureSpecificNames(const QJsonObject& data, const QMap<QSt
 						continue;
 					}
 					setName(n, specificName);
+					++loadedTotal;
 				}
 			}
 		}
@@ -1915,6 +1934,7 @@ void NebulaMgr::loadCultureSpecificNames(const QJsonObject& data, const QMap<QSt
 						continue;
 					}
 					setName(n, specificName);
+					++loadedTotal;
 				}
 			}
 		}
@@ -1923,6 +1943,7 @@ void NebulaMgr::loadCultureSpecificNames(const QJsonObject& data, const QMap<QSt
 			qWarning() << "NebulaMgr: unexpected common_names key:" << key;
 		}
 	}
+	return loadedTotal;
 }
 
 void NebulaMgr::loadCultureSpecificNameForNamedObject(const QJsonArray& data, const QString& commonName,
