@@ -7,7 +7,7 @@
 
 class ConstellationOldLoader
 {
-	QString skyCultureName;
+public:
 	struct Constellation
 	{
 		QString abbreviation;
@@ -24,6 +24,8 @@ class ConstellationOldLoader
 
 		bool read(QString const& record);
 	};
+private:
+	QString skyCultureName;
 	std::vector<Constellation> constellations;
 	struct RaDec
 	{
@@ -45,6 +47,7 @@ class ConstellationOldLoader
 	bool dumpConstellationsJSON(std::ostream& s) const;
 public:
 	void load(const QString &skyCultureDir, const QString& outDir);
+	const Constellation* find(QString const& englishName) const;
 	bool dumpJSON(std::ostream& s) const;
 	bool hasBoundaries() const { return !boundaries.empty(); }
 	void setBoundariesType(std::string const& type) { boundariesType = type; }

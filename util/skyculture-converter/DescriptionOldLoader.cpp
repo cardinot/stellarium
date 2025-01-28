@@ -8,6 +8,8 @@
 #include <QDebug>
 #include <QRegularExpression>
 #include <gettext-po.h>
+#include "NamesOldLoader.hpp"
+#include "ConstellationOldLoader.hpp"
 
 namespace
 {
@@ -615,7 +617,8 @@ QString DescriptionOldLoader::translateDescription(const QString& markdownInput,
 
 	return text;
 }
-void DescriptionOldLoader::loadTranslationsOfNames(const QString& poBaseDir, const QString& cultureIdQS, const QString& englishName)
+void DescriptionOldLoader::loadTranslationsOfNames(const QString& poBaseDir, const QString& cultureIdQS, const QString& englishName,
+                                                   const ConstellationOldLoader& consLoader, const NamesOldLoader& namesLoader)
 {
 	po_xerror_handler handler = {gettextpo_xerror, gettextpo_xerror2};
 	const auto cultureId = cultureIdQS.toStdString();
@@ -663,6 +666,14 @@ void DescriptionOldLoader::loadTranslationsOfNames(const QString& poBaseDir, con
 		if(!scNameTranslated)
 			qWarning() << "Couldn't find a translation for the name of the sky culture";
 
+		const std::vector<std::pair<std::string, std::string_view>> sourceFiles{
+			{"skycultures/"+cultureId+"/star_names.fab", "star"},
+			{"skycultures/"+cultureId+"/dso_names.fab", "dso"},
+			{"skycultures/"+cultureId+"/planet_names.fab", "planet"},
+			{"skycultures/"+cultureId+"/asterism_names.fab", "asterism"},
+			{"skycultures/"+cultureId+"/constellation_names.eng.fab", "constellation"},
+		};
+		QString comments;
 		const auto domains = po_file_domains(file);
 		for(auto domainp = domains; *domainp; domainp++)
 		{
@@ -673,23 +684,59 @@ void DescriptionOldLoader::loadTranslationsOfNames(const QString& poBaseDir, con
 			{
 				const auto msgid = po_message_msgid(message);
 				const auto msgstr = po_message_msgstr(message);
-				const auto comments = po_message_comments(message);
-				const auto xcomments = po_message_extracted_comments(message);
+				comments = po_message_comments(message);
+				auto xcomments = po_message_extracted_comments(message);
 				for(int n = 0; ; ++n)
 				{
 					const auto filepos = po_message_filepos(message, n);
 					if(!filepos) break;
 					const auto refFileName = po_filepos_file(filepos);
-					for(const auto ref : {
-					                      "skycultures/"+cultureId+"/star_names.fab",
-					                      "skycultures/"+cultureId+"/dso_names.fab",
-					                      "skycultures/"+cultureId+"/planet_names.fab",
-					                      "skycultures/"+cultureId+"/asterism_names.fab",
-					                      "skycultures/"+cultureId+"/constellation_names.eng.fab",
-					                      })
+					for(const auto ref : sourceFiles)
 					{
-						if(refFileName == ref)
-							dict.push_back({comments, xcomments, msgid, msgstr});
+						if(refFileName == ref.first)
+						{
+							if(ref.second == "constellation")
+							{
+								const auto cons = consLoader.find(msgid);
+								if(cons && !cons->nativeName.isEmpty())
+								{
+									comments = englishName+" constellation, native: "+cons->nativeName;
+								}
+								else
+								{
+									comments = englishName+" constellation";
+								}
+								xcomments = "";
+							}
+							else if(ref.second == "star")
+							{
+								const int hip = namesLoader.findStar(msgid);
+								if(hip > 0)
+								{
+									comments = QString("Name for HIP %1").arg(hip);
+									xcomments = "";
+								}
+							}
+							else if(ref.second == "planet")
+							{
+								const auto planet = namesLoader.findPlanet(msgid);
+								if(!planet.isEmpty())
+								{
+									comments = "Name for NAME " + planet;
+									xcomments = "";
+								}
+							}
+							else if(ref.second == "dso")
+							{
+								const auto dso = namesLoader.findDSO(msgid);
+								if(!dso.isEmpty())
+								{
+									comments = "Name for " + dso;
+									xcomments = "";
+								}
+							}
+							dict.push_back({comments.toUtf8().constData(), xcomments, msgid, msgstr});
+						}
 					}
 				}
 			}
@@ -720,6 +767,7 @@ void DescriptionOldLoader::locateAndRelocateAllInlineImages(QString& html, const
 
 void DescriptionOldLoader::load(const QString& inDir, const QString& poBaseDir, const QString& cultureId, const QString& englishName,
                                 const QString& author, const QString& credit, const QString& license,
+                                const ConstellationOldLoader& consLoader, const NamesOldLoader& namesLoader,
                                 const bool fullerConversionToMarkdown, const bool footnotesToRefs, const bool convertOrderedLists,
                                 const bool genTranslatedMD)
 {
@@ -982,7 +1030,7 @@ void DescriptionOldLoader::load(const QString& inDir, const QString& poBaseDir, 
 			translatedMDs[locale] = translateDescription(markdown, locale);
 	}
 
-	loadTranslationsOfNames(poBaseDir, cultureId, englishName);
+	loadTranslationsOfNames(poBaseDir, cultureId, englishName, consLoader, namesLoader);
 }
 
 bool DescriptionOldLoader::dumpMarkdown(const QString& outDir) const

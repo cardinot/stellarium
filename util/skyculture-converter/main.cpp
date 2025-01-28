@@ -176,7 +176,7 @@ int main(int argc, char** argv)
 
 	DescriptionOldLoader dLoader;
 	license = convertLicense(license);
-	dLoader.load(inDir, poDir, cultureId, englishName, author, credit, license,
+	dLoader.load(inDir, poDir, cultureId, englishName, author, credit, license, cLoader, nLoader,
 	             fullerConversion, footnotesToRefs, convertOrderedLists, genTranslatedMD);
 	dLoader.dump(outDir);
 

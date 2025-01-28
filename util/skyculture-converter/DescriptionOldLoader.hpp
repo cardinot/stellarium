@@ -5,6 +5,8 @@
 #include <QHash>
 #include <QString>
 
+class ConstellationOldLoader;
+class NamesOldLoader;
 class DescriptionOldLoader
 {
 	QString markdown;
@@ -35,12 +37,14 @@ class DescriptionOldLoader
 	QHash<QString/*locale*/, QString/*header*/> poHeaders;
 	bool dumpMarkdown(const QString& outDir) const;
 	void locateAndRelocateAllInlineImages(QString& html, bool saveToRefs);
-	void loadTranslationsOfNames(const QString& poBaseDir, const QString& cultureId, const QString& englishName);
+	void loadTranslationsOfNames(const QString& poBaseDir, const QString& cultureId, const QString& englishName,
+	                             const ConstellationOldLoader& consLoader, const NamesOldLoader& namesLoader);
 	QString translateSection(const QString& markdown, const qsizetype bodyStartPos, const qsizetype bodyEndPos, const QString& locale, const QString& sectionName) const;
 	QString translateDescription(const QString& markdown, const QString& locale) const;
 public:
 	void load(const QString& inDir, const QString& poBaseDir, const QString& cultureId, const QString& englishName,
 	          const QString& author, const QString& credit, const QString& license,
+	          const ConstellationOldLoader& consLoader, const NamesOldLoader& namesLoader,
 	          bool fullerConversionToMarkdown, bool footnotesToRefs, bool convertOrderedLists, bool genTranslatedMD);
 	bool dump(const QString& outDir) const;
 };

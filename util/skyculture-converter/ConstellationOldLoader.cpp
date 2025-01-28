@@ -378,6 +378,14 @@ void ConstellationOldLoader::load(const QString& skyCultureDir, const QString& o
 	loadBoundaries(skyCultureDir);
 }
 
+auto ConstellationOldLoader::find(QString const& englishName) const -> const Constellation*
+{
+	for(const auto& cons : constellations)
+		if(cons.englishName == englishName)
+			return &cons;
+	return nullptr;
+}
+
 bool ConstellationOldLoader::dumpConstellationsJSON(std::ostream& s) const
 {
 	if(constellations.empty()) return false;

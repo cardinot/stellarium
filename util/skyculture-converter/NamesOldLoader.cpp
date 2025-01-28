@@ -76,6 +76,15 @@ void NamesOldLoader::loadStarNames(const QString& skyCultureDir)
 		qDebug().noquote() << "Loaded" << readOk << "/" << totalRecords << "common star names";
 }
 
+int NamesOldLoader::findStar(QString const& englishName) const
+{
+	for(auto it = starNames.cbegin(); it != starNames.end(); ++it)
+		for(const auto& name : it.value())
+			if(name == englishName)
+				return it.key();
+	return -1;
+}
+
 void NamesOldLoader::loadDSONames(const QString& skyCultureDir)
 {
 	const auto namesFile = skyCultureDir + "/dso_names.fab";
@@ -135,6 +144,15 @@ void NamesOldLoader::loadDSONames(const QString& skyCultureDir)
 		qDebug().noquote() << "Loaded" << readOk << "/" << totalRecords << "common names of deep-sky objects";
 }
 
+QString NamesOldLoader::findDSO(QString const& englishName) const
+{
+	for(auto it = dsoNames.cbegin(); it != dsoNames.end(); ++it)
+		for(const auto& name : it.value())
+			if(name == englishName)
+				return it.key();
+	return {};
+}
+
 void NamesOldLoader::loadPlanetNames(const QString& skyCultureDir)
 {
 	const auto namesFile = skyCultureDir + "/planet_names.fab";
@@ -183,6 +201,15 @@ void NamesOldLoader::loadPlanetNames(const QString& skyCultureDir)
 			readOk++;
 		}
 	}
+}
+
+QString NamesOldLoader::findPlanet(QString const& englishName) const
+{
+	for(auto it = planetNames.cbegin(); it != planetNames.end(); ++it)
+		for(const auto& name : it.value())
+			if(name.english == englishName)
+				return it.key();
+	return {};
 }
 
 void NamesOldLoader::load(const QString& skyCultureDir)

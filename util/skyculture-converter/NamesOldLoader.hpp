@@ -21,5 +21,8 @@ class NamesOldLoader
 	void loadPlanetNames(const QString& skyCultureDir);
 public:
 	void load(const QString& skyCultureDir);
+	int/*HIP*/ findStar(QString const& englishName) const;
+	QString/*id*/ findPlanet(QString const& englishName) const;
+	QString/*id*/ findDSO(QString const& englishName) const;
 	bool dumpJSON(std::ostream& s) const;
 };
