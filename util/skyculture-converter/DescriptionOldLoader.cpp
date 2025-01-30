@@ -3,6 +3,7 @@
 #include <set>
 #include <deque>
 #include <string_view>
+#include <unordered_set>
 #include <QDir>
 #include <QFile>
 #include <QDebug>
@@ -635,6 +636,7 @@ void DescriptionOldLoader::loadTranslationsOfNames(const QString& poBaseDir, con
 
 		qDebug().nospace() << "Processing translations of names for locale " << locale << "...";
 		auto& dict = translations[locale];
+		std::unordered_set<QString> insertedNames;
 
 		// First try to find translation for the name of the sky culture
 		bool scNameTranslated = false;
@@ -735,6 +737,16 @@ void DescriptionOldLoader::loadTranslationsOfNames(const QString& poBaseDir, con
 									xcomments = "";
 								}
 							}
+							if(insertedNames.find(msgid) != insertedNames.end())
+							{
+								qWarning().nospace() << "msgid \"" << msgid
+								                     << "\" already exists, skipping entry:"
+								                     << "\n - comments: " << comments
+								                     << "\n - extracted comments: " << xcomments
+								                     << "\n - msgstr: \"" << msgstr << "\"";
+								continue;
+							}
+							insertedNames.insert(msgid);
 							dict.push_back({comments.toUtf8().constData(), xcomments, msgid, msgstr});
 						}
 					}
