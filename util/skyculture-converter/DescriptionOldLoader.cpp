@@ -739,11 +739,13 @@ void DescriptionOldLoader::loadTranslationsOfNames(const QString& poBaseDir, con
 							}
 							if(insertedNames.find(msgid) != insertedNames.end())
 							{
+#if 0
 								qWarning().nospace() << "msgid \"" << msgid
 								                     << "\" already exists, skipping entry:"
 								                     << "\n - comments: " << comments
 								                     << "\n - extracted comments: " << xcomments
 								                     << "\n - msgstr: \"" << msgstr << "\"";
+#endif
 								continue;
 							}
 							insertedNames.insert(msgid);
