@@ -254,7 +254,7 @@ void ConstellationOldLoader::loadNames(const QString& skyCultureDir)
 			// If the constellation exists, set the English name
 			if (aster)
 			{
-				aster->nativeName = recMatch.captured(2);
+				aster->nativeName = recMatch.captured(2).trimmed();
 				QString ctxt = recMatch.captured(3);
 				QRegularExpressionMatch ctxMatch=ctxRx.match(ctxt);
 				if (ctxMatch.hasMatch())
