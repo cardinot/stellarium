@@ -1,5 +1,6 @@
 #include <cmath>
 #include <limits>
+#include <ostream>
 #include <QDir>
 #include <QFile>
 #include <QDebug>
