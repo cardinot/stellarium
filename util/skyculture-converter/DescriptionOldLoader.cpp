@@ -857,7 +857,7 @@ void DescriptionOldLoader::load(const QString& inDir, const QString& poBaseDir, 
 
 	if(englishSections[0].title.trimmed().toLower() != englishName.toLower())
 	{
-		qWarning().nospace() << "English description caption is not the same as the name of the sky cuture: "
+		qWarning().nospace() << "English description caption is not the same as the name of the sky culture: "
 		                     << englishSections[0].title << " vs " << englishName << ". Will change the caption to match the name.";
 		englishSections[0].title = englishName;
 	}
