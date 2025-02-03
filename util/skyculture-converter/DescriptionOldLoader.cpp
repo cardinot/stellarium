@@ -693,7 +693,7 @@ void DescriptionOldLoader::loadTranslationsOfNames(const QString& poBaseDir, con
 					const auto filepos = po_message_filepos(message, n);
 					if(!filepos) break;
 					const auto refFileName = po_filepos_file(filepos);
-					for(const auto ref : sourceFiles)
+					for(const auto& ref : sourceFiles)
 					{
 						if(refFileName == ref.first)
 						{
