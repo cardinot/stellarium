@@ -136,6 +136,10 @@ int main(int argc, char** argv)
 		std::cerr << "Error: info.ini file wasn't found\n";
 		return 1;
 	}
+	inDir = QDir::fromNativeSeparators(inDir);
+	// Remove trailing directory separators, so that QFileInfo::fileName
+	// gave sky culture id rather than an empty string.
+	while(inDir.endsWith("/")) inDir.chop(1);
 	std::stringstream out;
 	QString boundariesType, author, credit, license, cultureId, englishName;
 	convertInfoIni(inDir, out, boundariesType, author, credit, license, cultureId, englishName);
