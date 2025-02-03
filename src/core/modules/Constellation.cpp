@@ -147,6 +147,7 @@ bool Constellation::read(const QJsonObject& data, StarMgr *starMgr, const bool p
 	}
 	beginSeason = months[0].toInt();
 	endSeason = months[1].toInt();
+	seasonalRuleEnabled = true;
 
 	return true;
 }
