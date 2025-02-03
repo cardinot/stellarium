@@ -710,6 +710,11 @@ void DescriptionOldLoader::loadTranslationsOfNames(const QString& poBaseDir, con
 								}
 								xcomments = "";
 							}
+							else if(ref.second == "asterism")
+							{
+								comments = englishName+" asterism";
+								xcomments = "";
+							}
 							else if(ref.second == "star")
 							{
 								const int hip = namesLoader.findStar(msgid);
