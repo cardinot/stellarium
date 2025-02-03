@@ -110,20 +110,20 @@ void AsterismOldLoader::load(const QString& skyCultureDir, const QString& cultur
 {
 	this->cultureId = cultureId;
 	QString fic = skyCultureDir+"/asterism_lines.fab";
-	if (fic.isEmpty())
-	{
-		hasAsterism = false;
-		qWarning() << "No asterisms in " << skyCultureDir;
-	}
-	else
+	if (QFileInfo(fic).exists())
 	{
 		hasAsterism = true;
 		loadLines(fic);
 	}
+	else
+	{
+		hasAsterism = false;
+		qWarning() << "No asterisms in " << skyCultureDir;
+	}
 
 	// load asterism names
 	fic = skyCultureDir + "/asterism_names.eng.fab";
-	if (!fic.isEmpty())
+	if (QFileInfo(fic).exists())
 		loadNames(fic);
 }
 
