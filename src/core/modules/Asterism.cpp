@@ -109,11 +109,7 @@ bool Asterism::read(const QJsonObject& data, StarMgr *starMgr)
 					                     << lineIndex << ": isn't a number";
 					return false;
 				}
-#if QT_VERSION >= QT_VERSION_CHECK(6,0,0)
-				const StarId HIP = point.toInteger();
-#else
-				const StarId HIP = point.toInt(); // Won't support Gaia id unless it fits into 32 bits
-#endif
+				const StarId HIP = StelUtils::getLongLong(point);
 				if (HIP <= NR_OF_HIP)
 					asterism.push_back(starMgr->searchHP(HIP));
 				else
