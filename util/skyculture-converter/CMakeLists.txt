@@ -10,7 +10,7 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
-find_package(Qt5 5.15 REQUIRED Core OpenGL)
+find_package(Qt6 6.2 REQUIRED Core Gui)
 find_package(GettextPo REQUIRED)
 
 add_executable(skyculture-converter
@@ -20,4 +20,4 @@ add_executable(skyculture-converter
                 ConstellationOldLoader.cpp
                 main.cpp
               )
-target_link_libraries(skyculture-converter Qt5::Core Qt5::Gui GettextPo::GettextPo)
+target_link_libraries(skyculture-converter Qt::Core Qt::Gui GettextPo::GettextPo)

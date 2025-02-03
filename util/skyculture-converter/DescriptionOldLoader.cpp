@@ -197,7 +197,7 @@ void htmlTablesToMarkdown(QString& string)
 				markdownTable += '|';
 				for(const auto& col : cols)
 				{
-					markdownTable += QString(std::max(3, col.size()), QChar('-'));
+					markdownTable += QString(std::max(3, int(col.size())), QChar('-'));
 					markdownTable += '|';
 				}
 				markdownTable += "\n";
