@@ -2792,12 +2792,28 @@ QByteArray uncompress(QIODevice& device, qint64 maxBytes)
 
 qint64 getLongLong(const QJsonValue& v)
 {
-	if(v.isString()) return v.toString().toLongLong();
+	const auto reportError = [&v]{
+		qWarning().nospace() << "Cannot obtain an integer from JSON value "
+		                     << v << ". Please format it as a JSON string or"
+		                     " make sure it's an integer smaller than 2^53.";
+		return 0;
+	};
+
+	bool ok = false;
+	if(v.isString())
+	{
+		const auto integer = v.toString().toLongLong(&ok);
+		if(!ok) return reportError();
+		return integer;
+	}
 	const auto value = v.toDouble();
 	constexpr qint64 max = (1LL<<std::numeric_limits<double>::digits) - 1;
-	if(std::abs(value) > max) return 0;
+
+	if(std::abs(value) > max) return reportError();
+
 	const auto integer = static_cast<qint64>(value);
-	if(value != integer) return 0; // fractional part must be zero
+	if(value != integer) // fractional part must be zero
+		return reportError();
 	return integer;
 }
 

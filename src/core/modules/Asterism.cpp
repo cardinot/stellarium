@@ -103,7 +103,7 @@ bool Asterism::read(const QJsonObject& data, StarMgr *starMgr)
 			case Type::RayHelper:
 			case Type::BigAsterism:
 			{
-				if (!point.isDouble())
+				if (!point.isDouble() && !point.isString())
 				{
 					qWarning().nospace() << "Error in asterism " << abbreviation << ": bad point at line #"
 					                     << lineIndex << ": isn't a number";
