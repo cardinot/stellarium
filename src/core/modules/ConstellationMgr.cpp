@@ -481,9 +481,9 @@ void ConstellationMgr::loadLinesNamesAndArt(const QJsonArray &constellationsData
 		const int y2 = xy2[1].toInt();
 		const int x3 = xy3[0].toInt();
 		const int y3 = xy3[1].toInt();
-		const int hp1 = anchor1["hip"].toInt();
-		const int hp2 = anchor2["hip"].toInt();
-		const int hp3 = anchor3["hip"].toInt();
+		const int hp1 = StelUtils::getLongLong(anchor1["hip"]);
+		const int hp2 = StelUtils::getLongLong(anchor2["hip"]);
+		const int hp3 = StelUtils::getLongLong(anchor3["hip"]);
 
 		const auto texfile = imgData["file"].toString();
 

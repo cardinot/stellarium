@@ -96,11 +96,7 @@ bool Constellation::read(const QJsonObject& data, StarMgr *starMgr, const bool p
 				// Can be "thin" or "bold", but we don't support these modifiers yet, so ignore this entry
 				continue;
 			}
-#if QT_VERSION >= QT_VERSION_CHECK(6,0,0)
-			const int HP = polyLine[i].toInteger();
-#else
-			const int HP = polyLine[i].toInt(); // Won't support Gaia id unless it fits into 32 bits
-#endif
+			const int HP = StelUtils::getLongLong(polyLine[i]);
 			if (HP <= 0)
 			{
 				qWarning().nospace() << "Error in constellation " << abbreviation << ": bad HIP " << HP;
