@@ -1162,7 +1162,22 @@ bool DescriptionOldLoader::dump(const QString& outDir) const
 		po_message_iterator_t iterator = po_message_iterator(file, nullptr);
 
 		// I've found no API to *create* a header, so will try to emulate it with a message
-		const auto header = poHeaders[locale];
+		const auto headerIt = poHeaders.find(locale);
+		if(headerIt == poHeaders.end())
+		{
+			qWarning().nospace() << "WARNING: No header for locale " << locale << " found. "
+				"This could mean that either this locale is not supported by Stellarium, "
+				"or its designation in the description file name is wrong.";
+		}
+		static const auto defaultHeaderTemplate = QLatin1String(
+			"Project-Id-Version: PACKAGE VERSION\n"
+			"MIME-Version: 1.0\n"
+			"Content-Type: text/plain; charset=UTF-8\n"
+			"Content-Transfer-Encoding: 8bit\n"
+			"Language: %1\n");
+		const QString header = headerIt == poHeaders.end() ?
+			defaultHeaderTemplate.arg(locale) :
+			headerIt.value();
 		const auto headerMsg = po_message_create();
 		po_message_set_msgid(headerMsg, "");
 		po_message_set_msgstr(headerMsg, header.toStdString().c_str());
