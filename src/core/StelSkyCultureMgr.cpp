@@ -493,13 +493,9 @@ QString StelSkyCultureMgr::getCurrentSkyCultureHtmlLicense() const
 	const auto lines = currentSkyCulture.license.split(QRegularExpression("\\s*\n+\\s*"), SkipEmptyParts);
 	if (lines.isEmpty()) return "";
 
-	switch (lines.size())
+	if (lines.size() == 1)
 	{
-	case 0:
-	case 1:
-	{
-		const auto line = lines.isEmpty() ? "" : lines[0];
-		const auto parts = line.split(":", SkipEmptyParts);
+		const auto parts = lines[0].split(":", SkipEmptyParts);
 		const auto licenseName = convertReferenceLinks(parts.size() == 1 ? parts[0] : parts[1]);
 		const auto [color, description] = getLicenseDescription(licenseName, true);
 		if (!description.isEmpty())
@@ -517,7 +513,7 @@ QString StelSkyCultureMgr::getCurrentSkyCultureHtmlLicense() const
 		}
 		return QString{};
 	}
-	default:
+	else
 	{
 		QString html = "<h1>" + q_("License") + "</h1>\n";
 		QString addendum;
@@ -542,7 +538,6 @@ QString StelSkyCultureMgr::getCurrentSkyCultureHtmlLicense() const
 			}
 		}
 		return html + addendum;
-	}
 	}
 }
 
