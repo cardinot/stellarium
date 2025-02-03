@@ -60,7 +60,7 @@ bool Asterism::read(const QJsonObject& data, StarMgr *starMgr)
 	asterism.clear();
 
 	flagAsterism = !data["is_ray_helper"].toBool();
-	typeOfAsterism = flagAsterism ? Type::BigAsterism : Type::RayHelper;
+	typeOfAsterism = flagAsterism ? Type::Asterism : Type::RayHelper;
 
 	if (polylines.isEmpty())
 	{
@@ -83,7 +83,7 @@ bool Asterism::read(const QJsonObject& data, StarMgr *starMgr)
 			return false;
 		}
 		// The entry contains RA and dec instead of HIP catalog number
-		typeOfAsterism = Type::SmallAsterism;
+		typeOfAsterism = Type::TelescopicAsterism;
 	}
 
 	StelCore *core = StelApp::getInstance().getCore();
@@ -101,7 +101,7 @@ bool Asterism::read(const QJsonObject& data, StarMgr *starMgr)
 			switch (typeOfAsterism)
 			{
 			case Type::RayHelper:
-			case Type::BigAsterism:
+			case Type::Asterism:
 			{
 				if (!point.isDouble() && !point.isString())
 				{
@@ -122,7 +122,7 @@ bool Asterism::read(const QJsonObject& data, StarMgr *starMgr)
 				}
 				break;
 			}
-			case Type::SmallAsterism:
+			case Type::TelescopicAsterism:
 			{
 				if (!point.isArray())
 				{
@@ -215,7 +215,7 @@ void Asterism::drawName(StelPainter& sPainter) const
 	if ((nameFader.getInterstate()==0.0f) || !flagAsterism)
 		return;
 
-	if (typeOfAsterism==Type::SmallAsterism && sPainter.getProjector()->getFov()>60.f)
+	if (typeOfAsterism==Type::TelescopicAsterism && sPainter.getProjector()->getFov()>60.f)
 		return;
 
 	QString name = getNameI18n();

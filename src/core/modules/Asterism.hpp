@@ -125,12 +125,12 @@ private:
 	Vec3d XYname;
 	enum class Type
 	{
-		RayHelper,     //!< Ray helper
-		BigAsterism,   //!< A big asterism with lines by HIP stars
-		SmallAsterism, //!< A small asterism with lines by J2000.0 coordinates
+		RayHelper,          //!< Ray helper
+		Asterism,           //!< An asterism with lines between HIP/Gaia stars
+		TelescopicAsterism, //!< An asterism with lines defined by J2000.0 coordinates
 	};
 	//! Type of asterism
-	Type typeOfAsterism = Type::BigAsterism;
+	Type typeOfAsterism = Type::Asterism;
 	bool flagAsterism;
 	//! List of stars forming the segments
 	std::vector<StelObjectP> asterism;
