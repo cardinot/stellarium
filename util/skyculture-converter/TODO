@@ -1,0 +1,4 @@
+This converter currently doesn't process the following items
+ * "TRANSLATORS:" comments
+ * Reference numbers in *_names.fab
+ * Chinese names with "Added <number>": in the new format these phrases are expected to be separated from the names, which would reduce the number of msgid's
