@@ -26,7 +26,6 @@
 #include "StelModuleMgr.hpp"
 #include "StelSkyDrawer.hpp"
 #include "StelLocaleMgr.hpp"
-#include "StarMgr.hpp"
 #include "Planet.hpp"
 
 #include <QTextStream>
@@ -37,6 +36,8 @@
 #include <QList>
 
 const QString Supernova::SUPERNOVA_TYPE = QStringLiteral("Supernova");
+// It's need for checking displaying of labels for stars
+bool Supernova::syncShowLabels = true;
 
 Supernova::Supernova(const QVariantMap& map)
 	: initialized(false)
@@ -108,19 +109,19 @@ QString Supernova::getEnglishName(void) const
 	return name;
 }
 
-QString Supernova::getMaxBrightnessDate(const double JD) const
+QString Supernova::getMaxBrightnessDate(const StelCore *core, const double JD) const
 {
-	return StelApp::getInstance().getLocaleMgr().getPrintableDateLocal(JD);
+	return StelApp::getInstance().getLocaleMgr().getPrintableDateLocal(JD, core->getUTCOffset(JD));
 }
 
-QString Supernova::getMagnitudeInfoString(const StelCore *core, const InfoStringGroup& flags, const int decimals) const
+QString Supernova::getMagnitudeInfoString(const StelCore *core, const InfoStringGroup& flags, const int decimals, const float& magOffset) const
 {
 	const float maglimit = 21.f;
 	QString res;
 
 	if (flags&Magnitude)
 	{
-		if (getVMagnitude(core) <= maglimit)
+		if (getVMagnitude(core) + magOffset <= maglimit)
 			res = StelObject::getMagnitudeInfoString(core, flags, decimals);
 		else
 		{
@@ -151,7 +152,7 @@ QString Supernova::getInfoString(const StelCore* core, const InfoStringGroup& fl
 	if (flags&Extra)
 	{
 		oss << QString("%1: %2").arg(q_("Type of supernova"), sntype) << "<br />";
-		oss << QString("%1: %2").arg(q_("Maximum brightness"), getMaxBrightnessDate(peakJD)) << "<br />";
+		oss << QString("%1: %2").arg(q_("Maximum brightness"), getMaxBrightnessDate(core, peakJD)) << "<br />";
 		if (distance>0)
 		{
 			//TRANSLATORS: Unit of measure for distance - Light Years
@@ -160,6 +161,7 @@ QString Supernova::getInfoString(const StelCore* core, const InfoStringGroup& fl
 		}
 	}
 
+	oss << getSolarLunarInfoString(core, flags);
 	postProcessInfoString(str, flags);
 	return str;
 }
@@ -240,11 +242,6 @@ float Supernova::getVMagnitude(const StelCore* core) const
 	return static_cast<float>(vmag);
 }
 
-void Supernova::update(double deltaTime)
-{
-	labelsFader.update(static_cast<int>(deltaTime*1000));
-}
-
 void Supernova::draw(StelCore* core, StelPainter& painter)
 {
 	StelSkyDrawer* sd = core->getSkyDrawer();
@@ -266,8 +263,7 @@ void Supernova::draw(StelCore* core, StelPainter& painter)
 		sd->drawPointSource(&painter, vf.toVec3d(), rcMag, color, true, qMin(1.0f, 1.0f-0.9f*altAz[2]));
 		sd->postDrawPointSource(&painter);
 		painter.setColor(color, 1.f);
-		StarMgr* smgr = GETSTELMODULE(StarMgr); // It's need for checking displaying of labels for stars
-		if (labelsFader.getInterstate()<=0.f && (mag+5.f)<mlimit && smgr->getFlagLabels())
+		if ((mag+5.f)<mlimit && syncShowLabels)
 			painter.drawText(getJ2000EquatorialPos(core), designation, 0, shift, shift, false);
 	}	
 }
@@ -276,8 +272,7 @@ Vec3d Supernova::getJ2000EquatorialPos(const StelCore* core) const
 {
 	if ((core) && (core->getUseAberration()) && (core->getCurrentPlanet()))
 	{
-		Vec3d vel=core->getCurrentPlanet()->getHeliocentricEclipticVelocity();
-		vel=StelCore::matVsop87ToJ2000*vel*core->getAberrationFactor()*(AU/(86400.0*SPEED_OF_LIGHT));
+		const Vec3d vel = core->getAberrationVec(core->getJDE());
 		Vec3d pos=XYZ+vel;
 		pos.normalize();
 		return pos;

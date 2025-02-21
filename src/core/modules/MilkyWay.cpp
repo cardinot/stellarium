@@ -28,7 +28,6 @@
 #include "StelProjector.hpp"
 #include "StelToneReproducer.hpp"
 #include "StelApp.hpp"
-#include "Dithering.hpp"
 #include "StelOpenGLArray.hpp"
 #include "SaturationShader.hpp"
 #include "StelTextureMgr.hpp"
@@ -84,6 +83,7 @@ void MilkyWay::init()
 	setFlagShow(conf->value("astro/flag_milky_way").toBool());
 	setIntensity(conf->value("astro/milky_way_intensity",1.).toDouble());
 	setSaturation(conf->value("astro/milky_way_saturation", 1.).toDouble());
+	setColor(Vec3f(conf->value("astro/milky_way_color", "1.0,1.0,1.0").toString()));
 
 	vbo.reset(new QOpenGLBuffer(QOpenGLBuffer::VertexBuffer));
 	vbo->create();
@@ -104,8 +104,6 @@ void MilkyWay::init()
 	bindVAO();
 	setupCurrentVAO();
 	releaseVAO();
-
-	ditherPatternTex = StelApp::getInstance().getTextureManager().getDitheringTexture(0);
 
 	QString displayGroup = N_("Display Options");
 	addAction("actionShow_MilkyWay", displayGroup, N_("Milky Way"), "flagMilkyWayDisplayed", "M");
@@ -164,11 +162,44 @@ void MilkyWay::setFlagShow(bool b)
 	if (*fader != b)
 	{
 		*fader = b;
+		StelApp::immediateSave("astro/flag_milky_way", b);
 		emit milkyWayDisplayedChanged(b);
 	}
 }
 
 bool MilkyWay::getFlagShow() const {return *fader;}
+
+// Set Milky Way intensity. Default value: 1.
+void MilkyWay::setIntensity(double aintensity)
+{
+	if(!qFuzzyCompare(aintensity, intensity))
+	{
+		intensity = aintensity;
+		StelApp::immediateSave("astro/milky_way_intensity", aintensity);
+		emit intensityChanged(intensity);
+	}
+}
+
+// Set Milky Way saturation (color strength).
+void MilkyWay::setSaturation(double sat)
+{
+	if(!qFuzzyCompare(sat, saturation))
+	{
+		saturation = sat;
+		StelApp::immediateSave("astro/milky_way_saturation", sat);
+		emit saturationChanged(saturation);
+	}
+}
+
+void MilkyWay::setColor(const Vec3f& c)
+{
+	if (c!=color)
+	{
+		color=c;
+		emit colorChanged(c);
+	}
+}
+
 
 void MilkyWay::draw(StelCore* core)
 {
@@ -206,7 +237,6 @@ void main()
 			projector->getUnProjectShader() +
 			core->getAberrationShader() +
 			extinction.getForwardTransformShader() +
-			makeDitheringShader()+
 			makeSaturationShader()+
 			R"(
 VARYING highp vec3 ndcPos;
@@ -249,7 +279,7 @@ void main(void)
     vec4 color = texture2D(mainTex, texc)*vec4(brightness,1)*extinctionFactor;
 	if(saturation != 1.0)
 		color.rgb = saturate(color.rgb, saturation);
-	FRAG_COLOR = dither(color);
+	FRAG_COLOR = color;
 }
 )";
 		ok = renderProgram->addShaderFromSourceCode(QOpenGLShader::Fragment, frag);
@@ -267,8 +297,6 @@ void main(void)
 		shaderVars.mainTex          = renderProgram->uniformLocation("mainTex");
 		shaderVars.saturation       = renderProgram->uniformLocation("saturation");
 		shaderVars.brightness       = renderProgram->uniformLocation("brightness");
-		shaderVars.rgbMaxValue      = renderProgram->uniformLocation("rgbMaxValue");
-		shaderVars.ditherPattern    = renderProgram->uniformLocation("ditherPattern");
 		shaderVars.bortleIntensity  = renderProgram->uniformLocation("bortleIntensity");
 		shaderVars.extinctionEnabled= renderProgram->uniformLocation("extinctionEnabled");
 		shaderVars.projectionMatrixInverse = renderProgram->uniformLocation("projectionMatrixInverse");
@@ -293,7 +321,8 @@ void main(void)
 
 	// We must also adjust milky way to light pollution.
 	// Is there any way to calibrate this?
-	float atmFadeIntensity = GETSTELMODULE(LandscapeMgr)->getAtmosphereFadeIntensity();
+	static LandscapeMgr *lMgr=GETSTELMODULE(LandscapeMgr);
+	const float atmFadeIntensity = lMgr->getAtmosphereFadeIntensity();
 	const float nelm = StelCore::luminanceToNELM(drawer->getLightPollutionLuminance());
 	const float bortleIntensity = 1.f+(15.5f-2*nelm)*atmFadeIntensity; // smoothed Bortle index moderated by atmosphere fader.
 
@@ -313,12 +342,12 @@ void main(void)
 	//Q_ASSERT(omgr);
 	// TODO: Find an even better balance with sky brightness, MW should be hard to see during Full Moon and at least somewhat reduced in smaller phases.
 	// adapt brightness by atmospheric brightness. This block developed for ZodiacalLight, hopefully similarly applicable...
-	const float atmLum = GETSTELMODULE(LandscapeMgr)->getAtmosphereAverageLuminance();
+	const float atmLum = lMgr->getAtmosphereAverageLuminance();
 	// Approximate values for Preetham: 10cd/m^2 at sunset, 3.3 at civil twilight (sun at -6deg). 0.0145 sun at -12, 0.0004 sun at -18,  0.01 at Full Moon!?
 	//omgr->setExtraInfoString(StelObject::DebugAid, QString("AtmLum: %1<br/>").arg(QString::number(atmLum, 'f', 4)));
 	// The atmLum of Bruneton's model is about 1/2 higher than that of Preetham/Schaefer. We must rebalance that!
 	float atmFactor=0.35;
-	if (GETSTELMODULE(LandscapeMgr)->getAtmosphereModel()=="showmysky")
+	if (lMgr->getAtmosphereModel()=="showmysky")
 	{
 		atmFactor=qMax(0.35f, 50.0f*(0.02f-0.2f*atmLum)); // The factor 0.2f was found empirically. Nominally it should be 0.667, but 0.2 or at least 0.4 looks better.
 	}
@@ -342,14 +371,9 @@ void main(void)
 	mainTex->bind(mainTexSampler);
 	renderProgram->setUniformValue(shaderVars.mainTex, mainTexSampler);
 
-	const int ditherTexSampler = 1;
-	ditherPatternTex->bind(ditherTexSampler);
-	renderProgram->setUniformValue(shaderVars.ditherPattern, ditherTexSampler);
-
 	renderProgram->setUniformValue(shaderVars.projectionMatrixInverse, projector->getProjectionMatrix().toQMatrix().inverted());
 	renderProgram->setUniformValue(shaderVars.brightness, c.toQVector());
 	renderProgram->setUniformValue(shaderVars.saturation, GLfloat(saturation));
-	renderProgram->setUniformValue(shaderVars.rgbMaxValue, calcRGBMaxValue(core->getDitheringMode()).toQVector());
 
 	core->setAberrationUniforms(*renderProgram);
 	projector->setUnProjectUniforms(*renderProgram);

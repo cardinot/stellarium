@@ -51,7 +51,7 @@ public slots:
 
 	//! set date from a vector of calendar date elements sorted from the largest to the smallest.
 	//! {year, month, leap-month, day, leap-day}
-	void setDate(QVector<int> parts5) override;
+	void setDate(const QVector<int> &parts5) override;
 
 	//! get a stringlist of calendar date elements sorted from the largest to the smallest.
 	//! {Cycle, Year, Month, MonthName, "leap"|"", Day, WeekDayName}
@@ -70,7 +70,7 @@ public slots:
 
 	//! find RD number for date in the Japanese calendar (CC:UE 19.17)
 	//! @arg parts5={cycle, year, month, leap, day}
-	static int fixedFromJapanese(QVector<int> parts5);
+	static int fixedFromJapanese(const QVector<int> &parts5);
 	//! find date in the Japanese calendar from RD number (CC:UE 19.16)
 	//! @return {cycle, year, month, leap, day}
 	static QVector<int> japaneseFromFixed(int rd);
@@ -155,7 +155,6 @@ protected:
 //	constexpr static const int bright=2; //! CC:UE 19.31
 //	constexpr static const int blind=1; //! CC:UE 19.32
 //	constexpr static const int widow=0; //! CC:UE 19.33
-
 };
 
 #endif

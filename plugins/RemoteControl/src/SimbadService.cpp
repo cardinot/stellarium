@@ -46,7 +46,7 @@ public:
 		setAutoDelete(false);
 	}
 
-	void run() Q_DECL_OVERRIDE
+	void run() override
 	{
 		//make sure this is really a separate thread (QtConcurrent does NOT guarantee that)
 		Q_ASSERT(parentThread!=QThread::currentThread());
@@ -66,7 +66,7 @@ public:
 
 		loop.exec();
 		//at this point, the reply is finished
-		//and we can extract information using getReply
+		//and we can extract information using getResults
 		status = reply->getCurrentStatus();
 		statusString = reply->getCurrentStatusString();
 		errorString = reply->getErrorString();

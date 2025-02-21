@@ -40,18 +40,18 @@ class StelSkyLayerMgr : public StelModule
 
 public:
 	StelSkyLayerMgr();
-	~StelSkyLayerMgr() Q_DECL_OVERRIDE;
+	~StelSkyLayerMgr() override;
 
 	///////////////////////////////////////////////////////////////////////////
 	// Methods defined in the StelModule class
 	//! Initialize
-	virtual void init() Q_DECL_OVERRIDE;
+	void init() override;
 
 	//! Draws sky background
-	virtual void draw(StelCore* core) Q_DECL_OVERRIDE;
+	void draw(StelCore* core) override;
 
 	//! Determines the order in which the various modules are drawn.
-	virtual double getCallOrder(StelModuleActionName actionName) const Q_DECL_OVERRIDE;
+	double getCallOrder(StelModuleActionName actionName) const override;
 
 	///////////////////////////////////////////////////////////////////////////
 	// Other specific methods
@@ -77,7 +77,7 @@ public slots:
 	///////////////////////////////////////////////////////////////////////////
 	// Properties setters and getters
 	//! Set whether Sky Background should be displayed
-	void setFlagShow(bool b) {if (flagShow !=b) { flagShow = b; emit flagShowChanged(b);}}
+	void setFlagShow(bool b) {if (flagShow !=b) { flagShow = b; StelApp::immediateSave("astro/flag_nebula_display_no_texture", !b); emit flagShowChanged(b);}}
 	//! Load an image from a file into a quad described with 4 corner coordinates.
 	//! The corners are always given in counterclockwise from top-left, also for azaltimuthal images.
 	//! This should not be called directly from scripts because it is not thread safe.

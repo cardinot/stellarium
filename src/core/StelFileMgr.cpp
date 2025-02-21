@@ -44,6 +44,7 @@
 QStringList StelFileMgr::fileLocations;
 QString StelFileMgr::userDir;
 QString StelFileMgr::screenshotDir;
+QString StelFileMgr::obsListDir;
 QString StelFileMgr::installDir;
 
 void StelFileMgr::init()
@@ -71,7 +72,7 @@ void StelFileMgr::init()
 	}
 #else
 	QByteArray userDirCand=qgetenv("STEL_USERDIR");
-	if (userDirCand.length()>0)
+	if (!userDirCand.isEmpty())
 	{
 		userDir=QString::fromLocal8Bit(userDirCand);
 	}
@@ -88,6 +89,15 @@ void StelFileMgr::init()
 	catch (std::runtime_error &e)
 	{
 		qFatal("Error: cannot create user config directory: %s", e.what());
+	}
+
+	// There is still a chance that userDir is just a relative path!
+	QFileInfo fi(userDir);
+	if (fi.isRelative() && fi.isDir())
+	{
+		qDebug() << userDir << "looks like a relative path";
+		userDir=fi.absoluteFilePath();
+		qDebug() << "userDir now " << userDir ;
 	}
 
 	// OK, now we have the userDir set, add it to the search path
@@ -130,7 +140,7 @@ void StelFileMgr::init()
 		QFileInfo checkFile(QFile::decodeName(INSTALL_DATADIR "/" CHECK_FILE));
 	#endif
 
-	#ifdef DEBUG
+	#ifndef NDEBUG
 		if (!checkFile.exists())
 		{	// for DEBUG use sources location 
 			QString debugDataPath = INSTALL_DATADIR_FOR_DEBUG;
@@ -145,10 +155,10 @@ void StelFileMgr::init()
 		}
 		else
 		{
-			qWarning() << "WARNING StelFileMgr::StelFileMgr: could not find install location:"
-					 << QDir::toNativeSeparators(installLocation.filePath())
-					 << " (we checked for "
-					 << QDir::toNativeSeparators(checkFile.filePath()) << ").";
+			qWarning().noquote() << "Could not find install location:"
+					     << QDir::toNativeSeparators(installLocation.filePath())
+					     << " (we checked for "
+					     << QDir::toNativeSeparators(checkFile.filePath()) << ").";
 
 			qWarning() << "Maybe this is AppImage or something similar? Let's check relative path...";
 			// This hook has been added after reverse-engineering an AppImage application
@@ -160,10 +170,10 @@ void StelFileMgr::init()
 			}
 			else
 			{
-				qWarning() << "WARNING StelFileMgr::StelFileMgr: could not find install location:"
-						 << QDir::toNativeSeparators(relativePath)
-						 << " (we checked for "
-						 << QDir::toNativeSeparators(checkFile.filePath()) << ").";
+				qWarning().noquote() << "Could not find install location:"
+						     << QDir::toNativeSeparators(relativePath)
+						     << " (we checked for "
+						     << QDir::toNativeSeparators(checkFile.filePath()) << ").";
 
 				qWarning() << "Maybe this is development environment? Let's check source directory path...";
 
@@ -175,10 +185,10 @@ void StelFileMgr::init()
 				}
 				else
 				{
-					qWarning() << "WARNING StelFileMgr::StelFileMgr: could not find install location:"
-							 << QDir::toNativeSeparators(sourceDirPath)
-							 << " (we checked for "
-							 << QDir::toNativeSeparators(checkFile.filePath()) << ").";
+					qWarning().noquote() << "Could not find install location:"
+							     << QDir::toNativeSeparators(sourceDirPath)
+							     << " (we checked for "
+							     << QDir::toNativeSeparators(checkFile.filePath()) << ").";
 
 					#ifndef UNIT_TEST
 					// NOTE: Hook for buildbots (using within testEphemeris)
@@ -231,7 +241,7 @@ QString StelFileMgr::findFile(const QString& path, Flags flags)
 		}
 	}
 	
-	for (const auto& i : qAsConst(fileLocations))
+	for (const auto& i : std::as_const(fileLocations))
 	{
 		const QFileInfo finfo(i + "/" + path);
 		if (fileFlagsCheck(finfo, flags))
@@ -273,7 +283,7 @@ QStringList StelFileMgr::findFileInAllPaths(const QString &path, const Flags &fl
 		return filePaths;
 	}
 
-	for (const auto& locationPath : qAsConst(fileLocations))
+	for (const auto& locationPath : std::as_const(fileLocations))
 	{
 		const QFileInfo finfo(locationPath + "/" + path);
 		if (fileFlagsCheck(finfo, flags))
@@ -292,10 +302,10 @@ QSet<QString> StelFileMgr::listContents(const QString& path, const StelFileMgr::
 		QSet<QString> dirs = listContents(path, Directory, false);
 		result = listContents(path, flags, false); // root
 		// add results for each sub-directory
-		for (const auto& d : qAsConst(dirs))
+		for (const auto& d : std::as_const(dirs))
 		{
 			QSet<QString> subDirResult = listContents(path + "/" + d, flags, true);
-			for (const auto& r : qAsConst(subDirResult))
+			for (const auto& r : std::as_const(subDirResult))
 			{
 				result.insert(d + "/" + r);
 			}
@@ -307,7 +317,7 @@ QSet<QString> StelFileMgr::listContents(const QString& path, const StelFileMgr::
 	// we append relative paths to the search paths maintained by this class.
 	QStringList listPaths = QFileInfo(path).isAbsolute() ? QStringList("/") : fileLocations;
 
-	for (const auto& li : qAsConst(listPaths))
+	for (const auto& li : std::as_const(listPaths))
 	{
 		QFileInfo thisPath(QDir(li).filePath(path));
 		if (!thisPath.isDir())
@@ -460,6 +470,18 @@ void StelFileMgr::setScreenshotDir(const QString& newDir)
 	screenshotDir = userDirFI.filePath();
 }
 
+QString StelFileMgr::getObsListDir()
+{
+	return obsListDir;
+}
+
+void StelFileMgr::setObsListDir(const QString& newDir)
+{
+	makeSureDirExistsAndIsWritable(newDir);
+	QFileInfo userDirFI(newDir);
+	obsListDir = userDirFI.filePath();
+}
+
 QString StelFileMgr::getLocaleDir()
 {
 #ifdef ENABLE_NLS
@@ -478,7 +500,7 @@ QString StelFileMgr::getLocaleDir()
 		}
 		else
 		{
-			qWarning() << "WARNING StelFileMgr::getLocaleDir() - could not determine locale directory";
+			qWarning() << "Could not determine locale directory";
 			return "";
 		}
 	}
@@ -502,7 +524,7 @@ void StelFileMgr::makeSureDirExistsAndIsWritable(const QString& dirFullPath)
 	{
 		// The modules directory doesn't exist, lets create it.
 		qDebug() << "Creating directory " << QDir::toNativeSeparators(uDir.filePath());
-		if (!QDir("/").mkpath(uDir.filePath()))
+		if (!QDir("/").mkpath(uDir.absoluteFilePath()))
 		{
 			throw std::runtime_error(QString("Could not create directory: " +uDir.filePath()).toStdString());
 		}
@@ -512,6 +534,8 @@ void StelFileMgr::makeSureDirExistsAndIsWritable(const QString& dirFullPath)
 			throw std::runtime_error(QString("Directory is not writable: " +uDir2.filePath()).toStdString());
 		}
 	}
+	else if (!uDir.isDir())
+		throw std::runtime_error(QString("File given instead of directory name: " +uDir.filePath()).toStdString());
 	else if (!uDir.isWritable())
 	{
 		throw std::runtime_error(QString("Directory is not writable: " +uDir.filePath()).toStdString());

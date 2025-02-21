@@ -33,6 +33,7 @@
 #include "Novae.hpp"
 #include "NovaeDialog.hpp"
 #include "StelProgressController.hpp"
+#include "StarMgr.hpp"
 
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
@@ -158,11 +159,11 @@ void Novae::init()
 	}
 	else
 	{
-		qDebug() << "[Novae] novae.json does not exist - copying default file to" << QDir::toNativeSeparators(novaeJsonPath);
+		qInfo().noquote() << "[Novae] novae.json does not exist - copying default file to" << QDir::toNativeSeparators(novaeJsonPath);
 		restoreDefaultJsonFile();
 	}
 
-	qDebug() << "[Novae] loading catalog file:" << QDir::toNativeSeparators(novaeJsonPath);
+	qInfo().noquote() << "[Novae] Loading catalog file:" << QDir::toNativeSeparators(novaeJsonPath);
 
 	readJsonFile();
 
@@ -178,6 +179,8 @@ void Novae::init()
 
 	connect(this, SIGNAL(jsonUpdateComplete(void)), this, SLOT(reloadCatalog()));
 	connect(StelApp::getInstance().getCore(), SIGNAL(configurationDataSaved()), this, SLOT(saveSettings()));
+	StarMgr* smgr = GETSTELMODULE(StarMgr);
+	connect(smgr, SIGNAL(starLabelsDisplayedChanged(bool)), this, SLOT(setFlagSyncShowLabels(bool)));
 
 	GETSTELMODULE(StelObjectMgr)->registerStelObjectMgr(this);
 }
@@ -191,7 +194,7 @@ void Novae::draw(StelCore* core)
 	StelPainter painter(prj);
 	painter.setFont(font);
 	
-	for (const auto& n : qAsConst(nova))
+	for (const auto& n : std::as_const(nova))
 	{
 		if (n && n->initialized)
 		{
@@ -218,8 +221,7 @@ void Novae::drawPointer(StelCore* core, StelPainter &painter)
 		if (!painter.getProjector()->project(pos, screenpos))
 			return;
 
-		const Vec3f& c(obj->getInfoColor());
-		painter.setColor(c[0],c[1],c[2]);
+		painter.setColor(obj->getInfoColor());
 		texPointer->bind();
 		painter.setBlending(true);
 		painter.drawSprite2dMode(screenpos[0], screenpos[1], 13.f, StelApp::getInstance().getTotalRunTime()*40.);
@@ -379,14 +381,14 @@ bool Novae::backupJsonFile(bool deleteOriginal)
 		{
 			if (!old.remove())
 			{
-				qWarning() << "[Novae] WARNING - could not remove old novae.json file";
+				qWarning() << "[Novae] Could not remove old novae.json file";
 				return false;
 			}
 		}
 	}
 	else
 	{
-		qWarning() << "[Novae] WARNING - failed to copy novae.json to novae.json.old";
+		qWarning() << "[Novae] Failed to copy novae.json to novae.json.old";
 		return false;
 	}
 
@@ -477,7 +479,7 @@ int Novae::getJsonFileVersion(void) const
 	{
 		jsonVersion = map.value("version").toInt();
 	}
-	qDebug() << "[Novae] version of the catalog:" << jsonVersion;
+	qInfo().noquote() << "[Novae] version of the catalog:" << jsonVersion;
 	return jsonVersion;
 }
 
@@ -605,7 +607,7 @@ void Novae::deleteDownloadProgressBar()
 	}
 }
 
-void Novae::startDownload(QString urlString)
+void Novae::startDownload(const QString &urlString)
 {
 	QUrl url(urlString);
 	if (!url.isValid() || url.isRelative() || !url.scheme().startsWith("http", Qt::CaseInsensitive))
@@ -624,7 +626,7 @@ void Novae::startDownload(QString urlString)
 	request.setUrl(QUrl(updateUrl));
 	request.setRawHeader("User-Agent", StelUtils::getUserAgentString().toUtf8());
 #if (QT_VERSION<QT_VERSION_CHECK(6,0,0))
-	request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+	request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, true);
 #endif
 	downloadReply = networkManager->get(request);
 	connect(downloadReply, SIGNAL(downloadProgress(qint64,qint64)), this, SLOT(updateDownloadProgress(qint64,qint64)));
@@ -713,7 +715,7 @@ void Novae::downloadComplete(QNetworkReply *reply)
 }
 
 
-void Novae::displayMessage(const QString& message, const QString hexColor)
+void Novae::displayMessage(const QString& message, const QString &hexColor)
 {
 	messageIDs << GETSTELMODULE(LabelMgr)->labelScreen(message, 30, 30 + (20*messageIDs.count()), true, 16, hexColor, false, 9000);
 }

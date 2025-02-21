@@ -39,14 +39,14 @@ class ConfigurationDialog : public StelDialog
 	Q_OBJECT
 public:
 	ConfigurationDialog(StelGui* agui, QObject* parent);
-	virtual ~ConfigurationDialog() Q_DECL_OVERRIDE;
+	~ConfigurationDialog() override;
 
 public slots:
-	virtual void retranslate() Q_DECL_OVERRIDE;
+	void retranslate() override;
 
 protected:
 	//! Initialize the dialog widgets and connect the signals/slots
-	virtual void createDialogContent() Q_DECL_OVERRIDE;
+	void createDialogContent() override;
 	Ui_configurationDialogForm* ui;
 
 private:
@@ -88,6 +88,8 @@ private slots:
 	void updateCurrentSkyLanguage();
 	void selectLanguage(const int id);    // id is index of name in QComboBox (must be called in a signal/slot connection!)
 	void selectSkyLanguage(const int id); // id is index of name in QComboBox (must be called in a signal/slot connection!)
+	void storeLanguageSettings(); // Store only currently set language settings (program and skyculture)
+	void storeFontSettings(); // Store only currently set font settings (sizes and program font)
 	void setStartupTimeMode();
 	//! Show/bring to foreground the shortcut editor window.
 	void showShortcutsWindow();

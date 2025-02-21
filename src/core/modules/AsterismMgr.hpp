@@ -31,6 +31,7 @@
 class StelToneReproducer;
 class StarMgr;
 class Asterism;
+class StelSkyCulture;
 class StelProjector;
 class StelPainter;
 
@@ -41,7 +42,7 @@ class StelPainter;
 class AsterismMgr : public StelObjectModule
 {
 	Q_OBJECT
-	Q_PROPERTY(float fontSize
+	Q_PROPERTY(int fontSize
 		   READ getFontSize
 		   WRITE setFontSize
 		   NOTIFY fontSizeChanged)
@@ -86,43 +87,43 @@ public:
 	//! Constructor
 	AsterismMgr(StarMgr *stars);
 	//! Destructor
-	virtual ~AsterismMgr() Q_DECL_OVERRIDE;
+	~AsterismMgr() override;
 
 	///////////////////////////////////////////////////////////////////////////
 	// Methods defined in the StelModule class
 	//! Initialize the AsterismMgr.
 	//! Reads from the asterism parser object and updates the loading bar
 	//! as asterism objects are loaded for the required sky culture.
-	virtual void init() Q_DECL_OVERRIDE;
+	void init() override;
 
 	//! Draw asterism lines, art, names and boundaries.
-	virtual void draw(StelCore* core) Q_DECL_OVERRIDE;
+	void draw(StelCore* core) override;
 
 	//! Updates time-varying state for each asterism.
-	virtual void update(double deltaTime) Q_DECL_OVERRIDE;
+	void update(double deltaTime) override;
 
 	//! Return the value defining the order of call for the given action
 	//! @param actionName the name of the action for which we want the call order
 	//! @return the value defining the order. The closer to 0 the earlier the module's action will be called
-	virtual double getCallOrder(StelModuleActionName actionName) const Q_DECL_OVERRIDE;
+	double getCallOrder(StelModuleActionName actionName) const override;
 
 	///////////////////////////////////////////////////////////////////////////
 	// Methods defined in StelObjectModule class
-	virtual QList<StelObjectP> searchAround(const Vec3d& v, double limitFov, const StelCore* core) const Q_DECL_OVERRIDE;
+	QList<StelObjectP> searchAround(const Vec3d& v, double limitFov, const StelCore* core) const override;
 
 	//! Return the matching asterism object's pointer if exists or Q_NULLPTR
 	//! @param nameI18n The case in-sensitive asterism name
-	virtual StelObjectP searchByNameI18n(const QString& nameI18n) const Q_DECL_OVERRIDE;
+	StelObjectP searchByNameI18n(const QString& nameI18n) const override;
 
 	//! Return the matching asterism if exists or Q_NULLPTR
 	//! @param name The case in-sensitive standard program name (three letter abbreviation)
-	virtual StelObjectP searchByName(const QString& name) const Q_DECL_OVERRIDE;
+	StelObjectP searchByName(const QString& name) const override;
 
-	virtual StelObjectP searchByID(const QString &id) const Q_DECL_OVERRIDE;
+	StelObjectP searchByID(const QString &id) const override;
 
-	virtual QStringList listAllObjects(bool inEnglish) const Q_DECL_OVERRIDE;
-	virtual QString getName() const Q_DECL_OVERRIDE { return "Asterisms"; }
-	virtual QString getStelObjectType() const Q_DECL_OVERRIDE;
+	QStringList listAllObjects(bool inEnglish) const override;
+	QString getName() const override { return "Asterisms"; }
+	QString getStelObjectType() const override;
 
 	///////////////////////////////////////////////////////////////////////////
 	// Properties setters and getters
@@ -173,9 +174,9 @@ public slots:
 	bool getFlagLabels(void) const;
 
 	//! Set the font size used for asterism names display
-	void setFontSize(const float newFontSize);
+	void setFontSize(const int newFontSize);
 	//! Get the font size used for asterism names display
-	float getFontSize() const;
+	int getFontSize() const;
 
 	//! Set the thickness of lines of the asterisms
 	//! @param thickness of line in pixels
@@ -224,7 +225,7 @@ public slots:
 	void selectAllAsterisms(void);
 
 signals:
-	void fontSizeChanged(const float newSize);
+	void fontSizeChanged(const int newSize);
 	void linesColorChanged(const Vec3f & color);
 	void linesDisplayedChanged(const bool displayed);
 	void namesColorChanged(const Vec3f & color);
@@ -237,8 +238,7 @@ signals:
 
 private slots:
 	//! Loads new asterism data and art if the SkyCulture has changed.
-	//! @param skyCultureDir the name of the directory containing the sky culture to use.
-	void updateSkyCulture(const QString& skyCultureDir);
+	void updateSkyCulture(const StelSkyCulture& skyCulture);
 
 	//! Update i18n names from English names according to current
 	//! locale, and update font for locale.
@@ -256,17 +256,6 @@ private slots:
 	void switchSelectionMode();
 
 private:
-	//! Read asterism names from the given file.
-	//! @param namesFile Name of the file containing the asterism names
-	//!        in a format consisting of abbreviation and translatable english name.
-	//! @note The abbreviation must occur in the lines file loaded first in @name loadLines()!
-	void loadNames(const QString& namesFile);
-
-	//! Load asterism line shapes from data files.
-	//! @param fileName The name of the asterism data file
-	//! @note The abbreviation used in @param filename is required for cross-identifying translatable names in @name loadNames():
-	void loadLines(const QString& fileName);
-
 	//! Draw the asterism lines at the epoch given by the StelCore.
 	void drawLines(StelPainter& sPainter, const StelCore* core) const;
 	//! Draw the ray helpers at the epoch given by the StelCore.

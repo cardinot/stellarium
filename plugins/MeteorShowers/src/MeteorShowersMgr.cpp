@@ -201,7 +201,7 @@ void MeteorShowersMgr::loadTextures()
 
 bool MeteorShowersMgr::loadCatalog(const QString& jsonPath)
 {
-	qDebug() << "[MeteorShowersMgr] Loading catalog file:"
+	qInfo().noquote() << "[MeteorShowersMgr] Loading catalog file:"
 		 << QDir::toNativeSeparators(jsonPath);
 
 	QFile jsonFile(jsonPath);
@@ -228,14 +228,14 @@ bool MeteorShowersMgr::loadCatalog(const QString& jsonPath)
 
 	QVariantMap map = json["showers"].toObject().toVariantMap();
 	m_meteorShowers->loadMeteorShowers(map);
-	qDebug() << "[MeteorShowersMgr] Version of the format of the catalog:" << json["version"].toInt();
+	qInfo().noquote() << "[MeteorShowersMgr] Version of the format of the catalog:" << json["version"].toInt();
 
 	return true;
 }
 
 void MeteorShowersMgr::restoreDefaultSettings()
 {
-	qDebug() << "[MeteorShowersMgr] Restoring default settings";
+	qInfo() << "[MeteorShowersMgr] Restoring default settings";
 	m_conf->beginGroup(MS_CONFIG_PREFIX);
 	m_conf->remove("");
 	m_conf->endGroup();
@@ -246,7 +246,7 @@ void MeteorShowersMgr::restoreDefaultSettings()
 
 bool MeteorShowersMgr::restoreDefaultCatalog(const QString& destination)
 {
-	qDebug() << "[MeteorShowersMgr] Trying to restore the default catalog to"
+	qInfo() << "[MeteorShowersMgr] Trying to restore the default catalog to"
 		 << QDir::toNativeSeparators(destination);
 
 	QFile d(destination);
@@ -270,7 +270,7 @@ bool MeteorShowersMgr::restoreDefaultCatalog(const QString& destination)
 
 	setLastUpdate(QDateTime::fromString("2015-07-01T00:00:00"));
 
-	qDebug() << "[MeteorShowersMgr] The default catalog was copied!";
+	qInfo() << "[MeteorShowersMgr] The default catalog was copied!";
 	displayMessage(q_("Using the default Meteor Showers catalog."), "#bb0000");
 
 	return true;
@@ -333,7 +333,7 @@ void MeteorShowersMgr::deleteDownloadProgressBar()
 	}
 }
 
-void MeteorShowersMgr::startDownload(QString urlString)
+void MeteorShowersMgr::startDownload(const QString &urlString)
 {
 	QUrl url(urlString);
 	if (!url.isValid() || url.isRelative() || !url.scheme().startsWith("http", Qt::CaseInsensitive))
@@ -352,7 +352,7 @@ void MeteorShowersMgr::startDownload(QString urlString)
 	request.setUrl(QUrl(m_url));
 	request.setRawHeader("User-Agent", StelUtils::getUserAgentString().toUtf8());
 #if (QT_VERSION<QT_VERSION_CHECK(6,0,0))
-	request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+	request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, true);
 #endif
 	m_downloadReply = m_networkManager->get(request);
 	connect(m_downloadReply, SIGNAL(downloadProgress(qint64,qint64)), this, SLOT(updateDownloadProgress(qint64,qint64)));
@@ -609,7 +609,7 @@ QDateTime MeteorShowersMgr::getNextUpdate()
 	return m_lastUpdate.addSecs(m_updateFrequencyHours * 3600);
 }
 
-void MeteorShowersMgr::displayMessage(const QString& message, const QString hexColor)
+void MeteorShowersMgr::displayMessage(const QString& message, const QString &hexColor)
 {
 	m_messageIDs << GETSTELMODULE(LabelMgr)->labelScreen(message, 30, 30 + (20 * m_messageIDs.count()), true, 16, hexColor, false, 9000);
 }

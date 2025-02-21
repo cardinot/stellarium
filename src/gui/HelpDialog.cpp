@@ -99,8 +99,8 @@ void HelpDialog::createDialogContent()
 	connect(&StelApp::getInstance(), SIGNAL(languageChanged()), this, SLOT(retranslate()));
 	ui->stackedWidget->setCurrentIndex(0);
 	ui->stackListWidget->setCurrentRow(0);
-	connect(ui->closeStelWindow, SIGNAL(clicked()), this, SLOT(close()));
-	connect(ui->TitleBar, SIGNAL(movedTo(QPoint)), this, SLOT(handleMovedTo(QPoint)));
+	connect(ui->titleBar, &TitleBar::closeClicked, this, &StelDialog::close);
+	connect(ui->titleBar, SIGNAL(movedTo(QPoint)), this, SLOT(handleMovedTo(QPoint)));
 
 	// Kinetic scrolling
 	kineticScrollingList << ui->helpBrowser << ui->aboutBrowser << ui->logBrowser;
@@ -174,7 +174,7 @@ void HelpDialog::checkUpdates()
 		request.setUrl(API);
 		request.setRawHeader("User-Agent", StelUtils::getUserAgentString().toUtf8());
 #if (QT_VERSION<QT_VERSION_CHECK(6,0,0))
-		request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+		request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, true);
 #endif
 		downloadReply = networkManager->get(request);
 
@@ -220,13 +220,9 @@ void HelpDialog::downloadComplete(QNetworkReply *reply)
 	QString latestVersion = map["name"].toString();
 	latestVersion.replace("v","", Qt::CaseInsensitive);
 	QStringList v = latestVersion.split(".");
+	v.append("0"); // the latest number (PATCH) is always 0 for releases
 
-	QString appVersion;
-	if (v.count()==3)
-		appVersion = StelUtils::getApplicationVersion();
-	else
-		appVersion = StelUtils::getApplicationPublicVersion();
-
+	QString appVersion = StelUtils::getApplicationVersion();
 	QStringList c = appVersion.split(".");
 	int r = StelUtils::compareVersions(latestVersion, appVersion);
 	if (r==-1 || c.count()>v.count() || c.last().contains("-"))
@@ -293,7 +289,7 @@ void HelpDialog::updateHelpText(void) const
 		    "</a></p>\n";
 
 	htmlText += "<h2 id='keys'>" + q_("Keys").toHtmlEscaped() + "</h2>\n";
-	htmlText += "<table cellpadding='10%' width='100%'>\n";
+	htmlText += "<table class='layout' cellpadding='10%' width='100%'>\n";
 	// Describe keys for those keys which do not have actions.
 	// navigate
 	htmlText += "<tr><td>" + q_("Pan view around the sky").toHtmlEscaped() + "</td>";
@@ -355,7 +351,7 @@ void HelpDialog::updateHelpText(void) const
 	htmlText += "</table>\n<p>" +
 			q_("Below are listed only the actions with assigned keys. Further actions may be available via the \"%1\" button.")
 			.arg(ui->editShortcutsButton->text()).toHtmlEscaped() +
-			"</p><table cellpadding='10%' width='100%'>\n";
+			"</p><table class='layout' cellpadding='10%' width='100%'>\n";
 
 	// Append all StelAction shortcuts.
 	StelActionMgr* actionMgr = StelApp::getInstance().getStelActionManager();
@@ -497,10 +493,13 @@ void HelpDialog::updateAboutText(void) const
 	typedef QPair<QString, int> donator;
 	QVector<donator> financialContributors = {
 		// Individuals
-		{ "Laurence Holt", 1000 }, { "Jeff Moe (Spacecruft)", 512 }, { "John Bellora", 470 }, { "Vernon Hermsen", 324 },
-		{ "Satish Mallesh", 260 }, { "Marla Pinaire", 260 }, { "Vlad Magdalin", 250  },
+		{ "Daniel", 1600 }, { "Laurence Holt", 1000 }, { "John Bellora", 670 }, { "Marla Pinaire", 530 }, { "Jeff Moe", 512 },
+		{ "Vernon Hermsen", 324 }, { "Walter Dörfler", 300 }, { "Michel Payette", 290 },  { "Salvatore Ficicchia", 261 },
+		{ "Satish Mallesh", 260 }, { "Raul Prisacariu", 260 }, { "Philippe Renoux", 250 }, { "Fito Martin", 250 },
+		{ "SuEllen Shepard", 250 },  { "Vlad Magdalin", 250  },
 		// Organizations
-		{ "Astronomie-Werkstatt \"Sterne ohne Grenzen\"", 520 }, { "Triplebyte", 280 }
+		{ "BairesDev", 9500 }, { "Dotcom-Monitor", 1000 }, { "Astronomie-Werkstatt \"Sterne ohne Grenzen\"", 790 },
+	        { "SSSTwitter", 500 }, { "Triplebyte", 280 }
 	};
 	std::sort(financialContributors.begin(), financialContributors.end(), [](donator i, donator j){ return i.second > j.second; });
 	QStringList bestFinancialContributors;

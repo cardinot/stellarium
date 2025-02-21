@@ -41,6 +41,7 @@
 #include "EphemWrapper.hpp"
 #include "NomenclatureItem.hpp"
 #include "precession.h"
+#include "Star.hpp"
 
 #include <QSettings>
 #include <QDebug>
@@ -71,6 +72,13 @@ const double StelCore::JD_DAY    = 1.;
 const double StelCore::ONE_OVER_JD_SECOND = 86400;		// 86400
 const double StelCore::TZ_ERA_BEGINNING = 2395996.5;		// December 1, 1847
 
+Vec3d StelCore::cachedParallaxDiff = Vec3d(0.,0.,0.);
+double StelCore::cachedParallaxJD = 0.0;
+PlanetP StelCore::cachedParallaxPlanet;
+Vec3d StelCore::cachedAberrationVec = Vec3d(0.,0.,0.);
+double StelCore::cachedAberrationJD = 0.0;
+PlanetP StelCore::cachedAberrationPlanet = Q_NULLPTR;
+
 StelCore::StelCore()
 	: skyDrawer(Q_NULLPTR)
 	, movementMgr(Q_NULLPTR)
@@ -82,6 +90,8 @@ StelCore::StelCore()
 	, flagUseNutation(true)
 	, flagUseAberration(true)
 	, aberrationFactor(1.0)
+	, flagUseParallax(true)
+	, parallaxFactor(1.0)
 	, flagUseTopocentricCoordinates(true)
 	, timeSpeed(JD_SECOND)
 	, JD(0.,0.)
@@ -90,6 +100,7 @@ StelCore::StelCore()
 	, jdOfLastJDUpdate(0.)
 	, flagUseDST(true)
 	, flagUseCTZ(false)
+	, startupTimeStop(false)
 	, deltaTCustomNDot(-26.0)
 	, deltaTCustomYear(1820.0)
 	, deltaTnDot(-26.0)
@@ -127,7 +138,7 @@ StelCore::StelCore()
 	currentProjectorParams.viewportCenter.set(viewportCenterX, viewportCenterY);
 	const qreal viewportCenterOffsetX = conf->value("projection/viewport_center_offset_x",0.).toDouble();
 	const qreal viewportCenterOffsetY = conf->value("projection/viewport_center_offset_y",0.).toDouble();
-	currentProjectorParams.viewportCenterOffset.set(viewportCenterOffsetX, viewportCenterOffsetY);
+	currentProjectorParams.viewportCenterOffset.set(viewportCenterOffsetX/100., viewportCenterOffsetY/100.);
 
 	currentProjectorParams.viewportFovDiameter = conf->value("projection/viewport_fov_diameter", qMin(viewport_width,viewport_height)).toDouble();
 	currentProjectorParams.flipHorz = conf->value("projection/flip_horz",false).toBool();
@@ -140,6 +151,8 @@ StelCore::StelCore()
 	flagUseNutation=conf->value("astro/flag_nutation", true).toBool();
 	flagUseAberration=conf->value("astro/flag_aberration", true).toBool();
 	aberrationFactor=conf->value("astro/aberration_factor", 1.0).toDouble();
+	flagUseParallax=conf->value("astro/flag_parallax", true).toBool();
+	parallaxFactor=conf->value("astro/parallax_factor", 1.0).toDouble();
 	flagUseTopocentricCoordinates=conf->value("astro/flag_topocentric_coordinates", true).toBool();
 	flagUseDST=conf->value("localization/flag_dst", true).toBool();
 
@@ -158,17 +171,21 @@ StelCore::~StelCore()
 	delete geodesicGrid; geodesicGrid=Q_NULLPTR;
 	delete skyDrawer; skyDrawer=Q_NULLPTR;
 	delete position; position=Q_NULLPTR;
+	cachedParallaxPlanet=Q_NULLPTR;
+	cachedAberrationPlanet=Q_NULLPTR;
 }
+
+const QMap<QString, DitheringMode>StelCore::ditheringMap={
+	{"disabled"   , DitheringMode::Disabled},
+	{"color565"   , DitheringMode::Color565},
+	{"color666"   , DitheringMode::Color666},
+	{"color888"   , DitheringMode::Color888},
+	{"color101010", DitheringMode::Color101010}};
 
 DitheringMode StelCore::parseDitheringMode(const QString& str)
 {
 	const auto s=str.trimmed().toLower();
-	if(s=="disabled"   ) return DitheringMode::Disabled;
-	if(s=="color565"   ) return DitheringMode::Color565;
-	if(s=="color666"   ) return DitheringMode::Color666;
-	if(s=="color888"   ) return DitheringMode::Color888;
-	if(s=="color101010") return DitheringMode::Color101010;
-	return DitheringMode::Disabled;
+	return ditheringMap.value(s, DitheringMode::Disabled);
 }
 
 /*************************************************************************
@@ -215,7 +232,7 @@ void StelCore::init()
 
 	if (!location.isValid())
 	{
-		qWarning() << "Warning: location" << defaultLocationID << "is unknown.";
+		qWarning() << "Location" << defaultLocationID << "is unknown.";
 		location = locationMgr->getLastResortLocation();
 	}
 	position = new StelObserver(location);
@@ -247,11 +264,11 @@ void StelCore::init()
 	presetSkyTime = presetTimeStr.toDouble(&ok);
 	if (ok)
 	{
-		qDebug() << "navigation/preset_sky_time is a double - treating as jday:" << QString::number(presetSkyTime, 'f', 5);
+		qInfo().noquote() << "navigation/preset_sky_time is a double - treating as jday:" << QString::number(presetSkyTime, 'f', 5);
 	}
 	else
 	{
-		qDebug() << "navigation/preset_sky_time was not a double, treating as string date:" << presetTimeStr;
+		qWarning().noquote() << "navigation/preset_sky_time was not a double, treating as string date:" << presetTimeStr;
 		presetSkyTime = StelUtils::qDateTimeToJd(QDateTime::fromString(presetTimeStr));
 	}
 	setInitTodayTime(QTime::fromString(conf->value("navigation/today_time", "22:00").toString()));
@@ -260,6 +277,9 @@ void StelCore::init()
 		setJD(presetSkyTime - static_cast<double>(getUTCOffset(presetSkyTime)) * JD_HOUR);
 	else if (startupTimeMode=="today")
 		setTodayTime(getInitTodayTime());
+	startupTimeStop = conf->value("navigation/startup_time_stop", false).toBool();
+	if (startupTimeStop)
+		setZeroTimeSpeed();
 
 	// Compute transform matrices between coordinates systems
 	updateTransformMatrices();
@@ -324,7 +344,11 @@ void StelCore::init()
 	actionsMgr->addAction("actionAdd_Julian_Year", timeGroup, N_("Add 1 Julian year"), this, "addJulianYear()");
 	actionsMgr->addAction("actionAdd_Julian_Century", timeGroup, N_("Add 1 Julian century"), this, "addJulianYears()");
 	actionsMgr->addAction("actionAdd_Gaussian_Year", timeGroup, N_("Add 1 Gaussian year"), this, "addGaussianYear()");
-	actionsMgr->addAction("actionAdd_Calendric_Month", timeGroup, N_("Add 1 calendric month"), this, "addCalendricMonth()");
+	actionsMgr->addAction("actionAdd_Calendar_Month", timeGroup, N_("Add 1 calendar month"), this, "addCalendarMonth()");
+	actionsMgr->addAction("actionAdd_Calendar_Year", timeGroup, N_("Add 1 calendar year"), this, "addCalendarYear()");
+	actionsMgr->addAction("actionAdd_Calendar_Decade", timeGroup, N_("Add 10 calendar years"), this, "addCalendarDecade()");
+	actionsMgr->addAction("actionAdd_Calendar_Century", timeGroup, N_("Add 100 calendar years"), this, "addCalendarCentury()");
+	actionsMgr->addAction("actionAdd_Great_Year", timeGroup, N_("Add 1 Great year"), this, "addGreatYear()");
 	actionsMgr->addAction("actionSubtract_Sidereal_Day", timeGroup, N_("Subtract 1 sidereal day"), this, "subtractSiderealDay()", "Alt+-");
 	actionsMgr->addAction("actionSubtract_Sidereal_Week", timeGroup, N_("Subtract 7 sidereal days"), this, "subtractSiderealWeek()");
 	actionsMgr->addAction("actionSubtract_Sidereal_Year", timeGroup, N_("Subtract 1 sidereal year"), this, "subtractSiderealYear()", "Ctrl+Alt+Shift+[");
@@ -343,7 +367,11 @@ void StelCore::init()
 	actionsMgr->addAction("actionSubtract_Julian_Year", timeGroup, N_("Subtract 1 Julian year"), this, "subtractJulianYear()");
 	actionsMgr->addAction("actionSubtract_Julian_Century", timeGroup, N_("Subtract 1 Julian century"), this, "subtractJulianYears()");
 	actionsMgr->addAction("actionSubtract_Gaussian_Year", timeGroup, N_("Subtract 1 Gaussian year"), this, "subtractGaussianYear()");
-	actionsMgr->addAction("actionSubtract_Calendric_Month", timeGroup, N_("Subtract 1 calendric month"), this, "subtractCalendricMonth()");
+	actionsMgr->addAction("actionSubtract_Calendar_Month", timeGroup, N_("Subtract 1 calendar month"), this, "subtractCalendarMonth()");
+	actionsMgr->addAction("actionSubtract_Calendar_Year", timeGroup, N_("Subtract 1 calendar year"), this, "subtractCalendarYear()");
+	actionsMgr->addAction("actionSubtract_Calendar_Decade", timeGroup, N_("Subtract 10 calendar years"), this, "subtractCalendarDecade()");
+	actionsMgr->addAction("actionSubtract_Calendar_Century", timeGroup, N_("Subtract 100 calendar years"), this, "subtractCalendarCentury()");
+	actionsMgr->addAction("actionSubtract_Great_Year", timeGroup, N_("Subtract 1 Great year"), this, "subtractGreatYear()");
 
 	actionsMgr->addAction("actionSet_Home_Planet_To_Selected", movementGroup, N_("Set home planet to selected planet"), this, "moveObserverToSelected()", "Ctrl+G");
 	actionsMgr->addAction("actionGo_Home_Global", movementGroup, N_("Go to home"), this, "returnToHome()", "Ctrl+H");
@@ -594,8 +622,10 @@ void StelCore::setCurrentProjectionTypeKey(QString key)
 	if (newType<0)
 	{
 		qWarning() << "Unknown projection type: " << key << "setting \"ProjectionStereographic\" instead";
+		key="ProjectionStereographic";
 		newType = ProjectionStereographic;
 	}
+	StelApp::immediateSave("projection/type", key);
 	setCurrentProjectionType(newType);
 }
 
@@ -627,8 +657,12 @@ void StelCore::setMaskType(StelProjector::StelProjectorMaskType m)
 
 void StelCore::setFlagGravityLabels(bool gravity)
 {
-	currentProjectorParams.gravityLabels = gravity;
-	emit flagGravityLabelsChanged(gravity);
+	if (currentProjectorParams.gravityLabels != gravity)
+	{
+		currentProjectorParams.gravityLabels = gravity;
+		StelApp::immediateSave("viewing/flag_gravity_labels", gravity);
+		emit flagGravityLabelsChanged(gravity);
+	}
 }
 
 bool StelCore::getFlagGravityLabels() const
@@ -646,6 +680,7 @@ void StelCore::setFlipHorz(bool flip)
 	if (currentProjectorParams.flipHorz != flip)
 	{
 		currentProjectorParams.flipHorz = flip;
+		StelApp::immediateSave("projection/flip_horz", flip);
 		emit flipHorzChanged(flip);
 	}
 }
@@ -655,6 +690,7 @@ void StelCore::setFlipVert(bool flip)
 	if (currentProjectorParams.flipVert != flip)
 	{
 		currentProjectorParams.flipVert = flip;
+		StelApp::immediateSave("projection/flip_vert", flip);
 		emit flipVertChanged(flip);
 	}
 }
@@ -763,11 +799,11 @@ void StelCore::lookAtJ2000(const Vec3d& pos, const Vec3d& aup)
 	invertMatAltAzModelView = matAltAzModelView.inverse();
 }
 
-void StelCore::setMatAltAzModelView(const Mat4d& mat)
-{
-	matAltAzModelView = mat;
-	invertMatAltAzModelView = matAltAzModelView.inverse();
-}
+//void StelCore::setMatAltAzModelView(const Mat4d& mat)
+//{
+//	matAltAzModelView = mat;
+//	invertMatAltAzModelView = matAltAzModelView.inverse();
+//}
 
 Vec3d StelCore::altAzToEquinoxEqu(const Vec3d& v, RefractionMode refMode) const
 {
@@ -844,6 +880,11 @@ Vec3d StelCore::j2000ToEquinoxEqu(const Vec3d& v, RefractionMode refMode) const
 Vec3d StelCore::j2000ToJ1875(const Vec3d& v) const
 {
 	return matJ2000ToJ1875*v;
+}
+
+Vec3d StelCore::j1875ToJ2000(const Vec3d& v) const
+{
+	return matJ2000ToJ1875.transpose()*v;
 }
 
 Vec3d StelCore::j2000ToGalactic(const Vec3d& v) const
@@ -1067,6 +1108,25 @@ Vec3d StelCore::getObserverHeliocentricEclipticPos() const
 	return Vec3d(matAltAzToHeliocentricEclipticJ2000[12], matAltAzToHeliocentricEclipticJ2000[13], matAltAzToHeliocentricEclipticJ2000[14]);
 }
 
+Vec3d StelCore::getObserverHeliocentricEclipticVelocity() const
+{
+	if (!position) return Vec3d(0,0,0);
+
+	const auto& planet = *position->getHomePlanet();
+	const Vec3d planetVelocity = planet.getHeliocentricEclipticVelocity();
+	if (!flagUseTopocentricCoordinates)
+		return planetVelocity;
+
+	const auto off = position->getTopographicOffsetFromCenter();
+	const auto rotRadius = off.v[0];
+	const auto rotPeriod = planet.getSiderealDay();
+	const auto linearSpeed = 2 * M_PI * rotRadius / rotPeriod; // AU/day
+	const auto toJ2000 = matAltAzToHeliocentricEclipticJ2000.upper3x3();
+	const auto eastwardVelocity = Vec3d(0,linearSpeed,0);
+	const auto velocity = toJ2000 * eastwardVelocity;
+	return planetVelocity + velocity;
+}
+
 // Set the location to use by default at startup
 void StelCore::setDefaultLocationID(const QString& id)
 {
@@ -1087,7 +1147,9 @@ void StelCore::returnToDefaultLocation()
 	StelLocationMgr& locationMgr = StelApp::getInstance().getLocationMgr();
 	StelLocation loc = locationMgr.locationForString(defaultLocationID);
 	if (loc.isValid())
-		moveObserverTo(loc, 0.);
+		moveObserverTo(loc, 1., 2.);
+	else
+		qDebug() << "StelCore::returnToDefaultLocation: Location " << loc.serializeToLine().replace('\t', '|') << "is invalid. Store an entry from the locations list as default location.";
 }
 
 void StelCore::returnToHome()
@@ -1096,6 +1158,7 @@ void StelCore::returnToHome()
 	// between planets using SpaceShip and second method give does not exist data
 	StelLocationMgr& locationMgr = StelApp::getInstance().getLocationMgr();
 	StelLocation loc;
+	QSettings* conf = StelApp::getInstance().getSettings();
 	if (defaultLocationID == "auto")
 	{
 		locationMgr.locationFromIP();
@@ -1105,10 +1168,9 @@ void StelCore::returnToHome()
 		loc = locationMgr.locationForString(defaultLocationID);
 
 	if (loc.isValid())
-		moveObserverTo(loc, 0.);
+		moveObserverTo(loc, conf->value("navigation/return_home_duration", 0.).toDouble()); // ability set a duration of movement (for a demo)
 
 	PlanetP p = GETSTELMODULE(SolarSystem)->searchByEnglishName(loc.planetName);
-	QSettings* conf = StelApp::getInstance().getSettings();
 
 	LandscapeMgr* landscapeMgr = GETSTELMODULE(LandscapeMgr);
 	landscapeMgr->setCurrentLandscapeID(landscapeMgr->getDefaultLandscapeID());
@@ -1120,7 +1182,7 @@ void StelCore::returnToHome()
 
 	StelMovementMgr* smmgr = getMovementMgr();
 	smmgr->setViewDirectionJ2000(altAzToJ2000(smmgr->getInitViewingDirection(), StelCore::RefractionOff));
-	smmgr->zoomTo(smmgr->getInitFov(), 1.);
+	smmgr->zoomTo(smmgr->getInitFov(), conf->value("navigation/return_fov_duration", 1.).toDouble()); // ability set a duration of zooming (for a demo)
 }
 
 double StelCore::getJDOfLastJDUpdate() const
@@ -1174,6 +1236,100 @@ double StelCore::getMJDay() const
 	return JD.first-2400000.5;
 }
 
+// @return whether nutation is currently used.
+bool StelCore::getUseNutation() const
+{
+	return flagUseNutation;
+}
+// Set whether you want computation and simulation of nutation (a slight wobble of Earth's axis, just a few arcseconds).
+void StelCore::setUseNutation(bool use)
+{
+	if (flagUseNutation != use)
+	{
+		flagUseNutation=use;
+		StelApp::immediateSave("astro/flag_nutation", use);
+		emit flagUseNutationChanged(use);
+	}
+}
+
+// @return whether aberration is currently used.
+bool StelCore::getUseAberration() const
+{
+	return flagUseAberration;
+}
+// Set whether you want computation and simulation of aberration (a slight wobble of stellar positions due to finite speed of light, about 20 arcseconds when observing from earth).
+void StelCore::setUseAberration(bool use)
+{
+	if (flagUseAberration != use)
+	{
+		flagUseAberration=use;
+		StelApp::immediateSave("astro/flag_aberration", use);
+		emit flagUseAberrationChanged(use);
+	}
+}
+
+// @return aberration factor. 1 is realistic simulation, but higher values may be useful for didactic purposes.
+double StelCore::getAberrationFactor() const
+{
+	return aberrationFactor;
+}
+// Set aberration factor. Values are clamped to 0...5. (Values above 5 cause graphical problems.)
+void StelCore::setAberrationFactor(double factor)
+{
+	if (!fuzzyEquals(aberrationFactor, factor))
+	{
+		aberrationFactor=qBound(0.,factor, 5.);
+		StelApp::immediateSave("astro/aberration_factor", aberrationFactor);
+		emit aberrationFactorChanged(factor);
+	}
+}
+
+// @return whether parallax effect is currently used.
+bool StelCore::getUseParallax() const
+{
+	return flagUseParallax;
+}
+// Set whether you want computation and simulation of parallax effect.
+void StelCore::setUseParallax(bool use)
+{
+	if (flagUseParallax != use)
+	{
+		flagUseParallax=use;
+		StelApp::immediateSave("astro/flag_parallax", use);
+		emit flagUseParallaxChanged(use);
+	}
+}
+
+// @return parallax factor. 1 is realistic simulation, but higher values may be useful for didactic purposes.
+double StelCore::getParallaxFactor() const {return parallaxFactor;}
+// Set aberration factor. Values are clamped to 0...5. (Values above 5 cause graphical problems.)
+void StelCore::setParallaxFactor(double factor)
+{
+	if (!fuzzyEquals(parallaxFactor, factor))
+	{
+		parallaxFactor=qBound(0.,factor, 10000.);
+		StelApp::immediateSave("astro/parallax_factor", parallaxFactor);
+		emit parallaxFactorChanged(factor);
+	}
+}
+
+// @return whether topocentric coordinates are currently used.
+bool StelCore::getUseTopocentricCoordinates() const
+{
+	return flagUseTopocentricCoordinates;
+}
+// Set whether you want topocentric or planetocentric data
+void StelCore::setUseTopocentricCoordinates(bool use)
+{
+	if (flagUseTopocentricCoordinates!= use)
+	{
+		flagUseTopocentricCoordinates=use;
+		// DO NOT IMMEDIATE-SAVE! -- This flag is switched too often. GH #4112
+		// Add a store button elsewhere when needed.
+		emit flagUseTopocentricCoordinatesChanged(use);
+	}
+}
+
 double StelCore::getPresetSkyTime() const
 {
 	return presetSkyTime;
@@ -1181,6 +1337,7 @@ double StelCore::getPresetSkyTime() const
 
 void StelCore::setPresetSkyTime(double d)
 {
+	StelApp::immediateSave("navigation/preset_sky_time", d);
 	presetSkyTime=d;
 }
 
@@ -1224,10 +1381,10 @@ void StelCore::moveObserverToSelected()
 
 				// Let's try guess name of location...
 				LocationMap results = StelApp::getInstance().getLocationMgr().pickLocationsNearby(loc.planetName, loc.getLongitude(), loc.getLatitude(), 1.0f);
-				if (results.size()>0)
+				if (!results.isEmpty())
 					loc = results.value(results.firstKey()); // ...and use it!
 
-				moveObserverTo(loc);
+				moveObserverTo(loc, 1, 1, pl->getEnglishName());
 			}
 		}
 		else
@@ -1236,15 +1393,10 @@ void StelCore::moveObserverToSelected()
 			if (ni)
 			{
 				// We need to move to the nomenclature item's host planet.
-				StelLocation loc; //  = getCurrentLocation();
-				loc.planetName = ni->getPlanet()->getEnglishName();
-				loc.name=ni->getEnglishName();
-				loc.state = "";
-				loc.setLongitude(ni->getLongitude());
-				loc.setLatitude(ni->getLatitude());
-				loc.lightPollutionLuminance = 0;
+				StelLocation loc(ni->getEnglishName(), "", "", ni->getPlanet()->getEnglishName(), ni->getLongitude(), ni->getLatitude(), 0, 0, getCurrentTimeZone(), 1, 'X', ni->getPlanet()->getEnglishName());
+				loc.lightPollutionLuminance = 0; // be dead sure it's zero!
 
-				moveObserverTo(loc);
+				moveObserverTo(loc, 1, 1, ni->getPlanet()->getEnglishName());
 				objmgr->unSelect(); // no use to keep it: Marker will flicker around the screen.
 			}
 		}
@@ -1274,14 +1426,15 @@ void StelCore::setObserver(StelObserver *obs)
 {
 	delete position;
 	position = obs;
-	if (!getUseCustomTimeZone() && obs->getCurrentLocation().ianaTimeZone.length()>0)
+	if (!getUseCustomTimeZone() && !obs->getCurrentLocation().ianaTimeZone.isEmpty())
 		setCurrentTimeZone(obs->getCurrentLocation().ianaTimeZone);
 }
 
 // Smoothly move the observer to the given location
 void StelCore::moveObserverTo(const StelLocation& target, double duration, double durationIfPlanetChange, const QString &landscapeID)
 {
-	double d = (getCurrentLocation().planetName==target.planetName) ? duration : durationIfPlanetChange;
+	const double d = (getCurrentLocation().planetName==target.planetName) ? duration : durationIfPlanetChange;
+	//qDebug() << "StelCore::moveObserverTo" << target.name << "in" << d << "seconds with Landscape" << landscapeID ;
 	if (d>0.)
 	{
 		StelLocation curLoc = getCurrentLocation();
@@ -1317,7 +1470,7 @@ void StelCore::moveObserverTo(const StelLocation& target, double duration, doubl
 			}
 		}
 	}
-	emit targetLocationChanged(target, landscapeID);
+	emit targetLocationChanged(target, landscapeID); // inform others about our next location. E.g., let LandscapeMgr load a new landscape.
 	emit locationChanged(getCurrentLocation());
 }
 
@@ -1354,16 +1507,14 @@ double StelCore::getUTCOffset(const double JD) const
 #endif
 	StelLocation loc = getCurrentLocation();
 	QString tzName = getCurrentTimeZone();
+	bool tzSpecial = QString("LMST LTST system_default").contains(tzName);
 	QTimeZone tz(tzName.toUtf8());
 	// We must fight a bug in Qt6.2 on Linux. For some reason tz.isValid() is true even for our self-named zones LMST,LTST,system_default.
 	// We must use an intermediate Boolean which we set to false where needed.
-	bool tzValid=tz.isValid();
-	if (QString("LMST LTST system_default").contains(tzName))
-		tzValid=false;
-	if (!tzValid && !QString("LMST LTST system_default").contains(tzName))
-	{
-		qWarning() << "Invalid timezone: " << tzName;
-	}
+	bool tzValid = tzSpecial ? false : tz.isValid();
+
+	if (!tzValid && !tzSpecial)
+		qWarning().noquote() << "Invalid timezone: " << tzName;
 
 	qint64 shiftInSeconds = 0;
 	if (tzName=="system_default" || (loc.planetName=="Earth" && !tzValid && !QString("LMST LTST").contains(tzName)))
@@ -1406,12 +1557,6 @@ double StelCore::getUTCOffset(const double JD) const
 			shiftInSeconds += qRound(getSolutionEquationOfTime()*60);
 	}
 	//qDebug() << "ShiftInSeconds:" << shiftInSeconds;
-	#ifdef Q_OS_WIN
-	// A dirty hack for report: https://github.com/Stellarium/stellarium/issues/686
-	// TODO: switch to IANA TZ on all operating systems
-	if (tzName=="Europe/Volgograd")
-		shiftInSeconds = 4*3600; // UTC+04:00
-	#endif
 
 	// Extraterrestrial: Either use the configured Terrestrial timezone, or even a pseudo-LMST based on planet's rotation speed?
 	if (loc.planetName!="Earth")
@@ -1481,6 +1626,7 @@ void StelCore::setDitheringMode(const DitheringMode newMode)
 		return;
 
 	ditheringMode = newMode;
+	StelApp::immediateSave("video/dithering_mode", ditheringMap.key(newMode, "disabled"));
 	emit ditheringModeChanged(newMode);
 }
 
@@ -1499,6 +1645,18 @@ void StelCore::setUseCustomTimeZone(const bool b)
 {
 	flagUseCTZ = b;
 	emit useCustomTimeZoneChanged(b);
+}
+
+bool StelCore::getStartupTimeStop() const
+{
+	return startupTimeStop;
+}
+
+void StelCore::setStartupTimeStop(const bool b)
+{
+	startupTimeStop = b;
+	StelApp::immediateSave("navigation/startup_time_stop", b);
+	emit startupTimeStopChanged(b);
 }
 
 double StelCore::getSolutionEquationOfTime(const double JDE) const
@@ -1566,7 +1724,7 @@ void StelCore::setTodayTime(const QTime& target)
 	}
 	else
 	{
-		qWarning() << "WARNING - time passed to StelCore::setTodayTime is not valid. The system time will be used." << target;
+		qWarning().noquote() << "Time passed to StelCore::setTodayTime is not valid. The system time will be used." << target;
 		setTimeNow();
 	}
 }
@@ -1592,6 +1750,7 @@ QTime StelCore::getInitTodayTime(void) const
 
 void StelCore::setInitTodayTime(const QTime& time)
 {
+	StelApp::immediateSave("navigation/today_time", time);
 	initTodayTime=time;
 }
 
@@ -1667,7 +1826,7 @@ void StelCore::addMeanTropicalMonth()
 	addSolarDays(27.321582241);
 }
 
-void StelCore::addCalendricMonth()
+void StelCore::addCalendarMonth()
 {
 	double cjd = getJD();
 	int year, month, day, hour, minute, second;
@@ -1678,6 +1837,36 @@ void StelCore::addCalendricMonth()
 		month = 1;
 		year++;
 	}
+	StelUtils::getJDFromDate(&cjd, year, month, day, hour, minute, static_cast<float>(second));
+	setJD(cjd);
+}
+
+void StelCore::addCalendarYear()
+{
+	double cjd = getJD();
+	int year, month, day, hour, minute, second;
+	StelUtils::getDateTimeFromJulianDay(cjd, &year, &month, &day, &hour, &minute, &second);
+	year++;
+	StelUtils::getJDFromDate(&cjd, year, month, day, hour, minute, static_cast<float>(second));
+	setJD(cjd);
+}
+
+void StelCore::addCalendarDecade()
+{
+	double cjd = getJD();
+	int year, month, day, hour, minute, second;
+	StelUtils::getDateTimeFromJulianDay(cjd, &year, &month, &day, &hour, &minute, &second);
+	year+=10;
+	StelUtils::getJDFromDate(&cjd, year, month, day, hour, minute, static_cast<float>(second));
+	setJD(cjd);
+}
+
+void StelCore::addCalendarCentury()
+{
+	double cjd = getJD();
+	int year, month, day, hour, minute, second;
+	StelUtils::getDateTimeFromJulianDay(cjd, &year, &month, &day, &hour, &minute, &second);
+	year+=100;
 	StelUtils::getJDFromDate(&cjd, year, month, day, hour, minute, static_cast<float>(second));
 	setJD(cjd);
 }
@@ -1735,6 +1924,11 @@ void StelCore::addGaussianYear()
 void StelCore::addJulianYears(double n)
 {
 	addSolarDays(365.25*n);
+}
+
+void StelCore::addGreatYear()
+{
+	addSiderealYears(25800);
 }
 
 void StelCore::subtractMinute()
@@ -1798,7 +1992,7 @@ void StelCore::subtractMeanTropicalMonth()
 	addSolarDays(-27.321582241);
 }
 
-void StelCore::subtractCalendricMonth()
+void StelCore::subtractCalendarMonth()
 {
 	double cjd = getJD();
 	int year, month, day, hour, minute, second;
@@ -1811,6 +2005,41 @@ void StelCore::subtractCalendricMonth()
 	}
 	StelUtils::getJDFromDate(&cjd, year, month, day, hour, minute, static_cast<float>(second));
 	setJD(cjd);
+}
+
+void StelCore::subtractCalendarYear()
+{
+	double cjd = getJD();
+	int year, month, day, hour, minute, second;
+	StelUtils::getDateTimeFromJulianDay(cjd, &year, &month, &day, &hour, &minute, &second);
+	year--;
+	StelUtils::getJDFromDate(&cjd, year, month, day, hour, minute, static_cast<float>(second));
+	setJD(cjd);
+}
+
+void StelCore::subtractCalendarDecade()
+{
+	double cjd = getJD();
+	int year, month, day, hour, minute, second;
+	StelUtils::getDateTimeFromJulianDay(cjd, &year, &month, &day, &hour, &minute, &second);
+	year-=10;
+	StelUtils::getJDFromDate(&cjd, year, month, day, hour, minute, static_cast<float>(second));
+	setJD(cjd);
+}
+
+void StelCore::subtractCalendarCentury()
+{
+	double cjd = getJD();
+	int year, month, day, hour, minute, second;
+	StelUtils::getDateTimeFromJulianDay(cjd, &year, &month, &day, &hour, &minute, &second);
+	year-=100;
+	StelUtils::getJDFromDate(&cjd, year, month, day, hour, minute, static_cast<float>(second));
+	setJD(cjd);
+}
+
+void StelCore::subtractGreatYear()
+{
+	subtractSiderealYears(25800);
 }
 
 void StelCore::subtractAnomalisticMonth()
@@ -2005,14 +2234,16 @@ void StelCore::updateTime(double deltaTime)
 		delete position;
 		position = newObs;
 	}
-	if (position->update(deltaTime))
+	if (position && position->update(deltaTime))
+	{
 		emit locationChanged(getCurrentLocation());
+	}
 
 	// Position of sun and all the satellites (ie planets)
 	// GZ maybe setting this static can speedup a bit?
 	static SolarSystem* solsystem = static_cast<SolarSystem*>(StelApp::getInstance().getModuleMgr().getModule("SolarSystem"));
 	// Likely the most important location where we need JDE:
-	solsystem->computePositions(getJDE(), getCurrentPlanet());
+	solsystem->computePositions(this, getJDE(), getCurrentPlanet());
 }
 
 void StelCore::resetSync()
@@ -2041,6 +2272,7 @@ void StelCore::registerMathMetaTypes()
 	qRegisterMetaType<Mat4f>();
 	qRegisterMetaType<Mat3d>();
 	qRegisterMetaType<Mat3f>();
+	qRegisterMetaType<DitheringMode>();
 
 #if (QT_VERSION<QT_VERSION_CHECK(6,0,0))
 	//registers the QDataStream operators, so that QVariants with these types can be saved
@@ -2057,6 +2289,7 @@ void StelCore::registerMathMetaTypes()
 	qRegisterMetaTypeStreamOperators<Mat4f>();
 	qRegisterMetaTypeStreamOperators<Mat3d>();
 	qRegisterMetaTypeStreamOperators<Mat3f>();
+	qRegisterMetaTypeStreamOperators<DitheringMode>();
 #endif
 	//for debugging QVariants with these types, it helps if we register the string converters
 	// This is also required for QJSEngine.
@@ -2086,6 +2319,7 @@ void StelCore::registerMathMetaTypes()
 
 void StelCore::setStartupTimeMode(const QString& s)
 {
+	StelApp::immediateSave("navigation/startup_time_mode", s);
 	startupTimeMode = s;
 }
 
@@ -2321,14 +2555,14 @@ void StelCore::setCurrentDeltaTAlgorithm(DeltaTAlgorithm algorithm)
 			deltaTfinish	= 1100; // not 1620; // GZ: Not applicable for telescopic era, and better not after 1100 (pers.comm.)
 			break;
 		case EspenakMeeus:
-			// Espenak & Meeus (2006) algorithm for DeltaT
+			// Espenak & Meeus (2006, 2014) algorithm for DeltaT
 			deltaTnDot = -25.858; // n.dot = -25.858 "/cy/cy
 			deltaTfunc = StelUtils::getDeltaTByEspenakMeeus;
 			deltaTstart	= -1999;
 			deltaTfinish	= 3000;
 			break;
 		case EspenakMeeusModified:
-			// Espenak & Meeus (2006) algorithm (with modified formulae) for DeltaT
+			// Espenak & Meeus (2006, 2014) algorithm (with modified formulae) for DeltaT
 			deltaTnDot = -25.858; // n.dot = -25.858 "/cy/cy
 			deltaTfunc = StelUtils::getDeltaTByEspenakMeeusModified;
 			deltaTstart	= -1999;
@@ -2336,7 +2570,7 @@ void StelCore::setCurrentDeltaTAlgorithm(DeltaTAlgorithm algorithm)
 			break;
 		case EspenakMeeusZeroMoonAccel:
 			// This is a trying area. Something is wrong with DeltaT, maybe ndot is still not applied correctly.
-			// Espenak & Meeus (2006) algorithm for DeltaT
+			// Espenak & Meeus (2006, 2014) algorithm for DeltaT
 			deltaTnDot = -25.858; // n.dot = -25.858 "/cy/cy
 			deltaTdontUseMoon = true;
 			deltaTfunc = StelUtils::getDeltaTByEspenakMeeus;
@@ -2359,7 +2593,7 @@ void StelCore::setCurrentDeltaTAlgorithm(DeltaTAlgorithm algorithm)
 			deltaTfinish	= 2007;
 			break;
 		case KhalidSultanaZaidi:
-			// M. Khalid, Mariam Sultana and Faheem Zaidi polinomial approximation of time period 1620-2013 (2014)
+			// M. Khalid, Mariam Sultana and Faheem Zaidi polynomial approximation of time period 1620-2013 (2014)
 			deltaTnDot = -26.0; // n.dot = -26.0 "/cy/cy
 			deltaTfunc = StelUtils::getDeltaTByKhalidSultanaZaidi;
 			deltaTdontUseMoon = true; // Seems this solutions doesn't use value of secular acceleration of the Moon
@@ -2410,6 +2644,7 @@ void StelCore::setCurrentDeltaTAlgorithmKey(QString key)
 		qWarning() << "Unknown DeltaT algorithm: " << key << "setting \"WithoutCorrection\" instead";
 		algo = WithoutCorrection;
 	}
+	StelApp::immediateSave("navigation/time_correction_algorithm", key);
 	setCurrentDeltaTAlgorithm(algo);
 }
 
@@ -2507,10 +2742,10 @@ QString StelCore::getCurrentDeltaTAlgorithmDescription(void) const
 			description = q_("From the Length of Day (LOD; as determined by Stephenson & Morrison (%2)), Victor Reijs derived a %1T formula by using a Simplex optimisation with a cosine and square function. This is based on a possible periodicy described by Stephenson (%2). See for more info %3here%4.").arg(QChar(0x0394)).arg("<a href='http://adsabs.harvard.edu/abs/2004JHA....35..327M'>2004</a>", "<a href='http://www.iol.ie/~geniet/eng/DeltaTeval.htm'>", "</a>").append(getCurrentDeltaTAlgorithmValidRangeDescription(jd, &marker));
 			break;
 		case EspenakMeeus: // GENERAL SOLUTION
-			description = q_("This solution by F. Espenak and J. Meeus, based on Morrison & Stephenson (2004) and a polynomial fit through tabulated values for 1600-2000, is used for the %1NASA Eclipse Web Site%2 and in their <em>Five Millennium Canon of Solar Eclipses: -1900 to +3000</em> (2006). This formula is also used in the solar, lunar and planetary ephemeris program SOLEX.").arg("<a href='http://eclipse.gsfc.nasa.gov/eclipse.html'>", "</a>").append(getCurrentDeltaTAlgorithmValidRangeDescription(jd, &marker));
+			description = q_("This solution by F. Espenak and J. Meeus, based on Morrison & Stephenson (2004) and a polynomial fit through tabulated values for 1600-2000, is used for the %1NASA Eclipse Web Site%2, in their <em>Five Millennium Canon of Solar Eclipses: -1900 to +3000</em> (2006) and <em>Thousand Year Canon of Solar Eclipses 1501 to 2500</em> (2014). This formula is also used in the solar, lunar and planetary ephemeris program SOLEX.").arg("<a href='http://eclipse.gsfc.nasa.gov/eclipse.html'>", "</a>").append(getCurrentDeltaTAlgorithmValidRangeDescription(jd, &marker));
 			break;
 		case EspenakMeeusModified: // MODIFIED SOLUTION
-			description = q_("This solution is modified from F. Espenak and J. Meeus, based on Morrison & Stephenson (2004) and a polynomial fit through tabulated values for 1600-2000. Formula for 2005-2050 is modified to match observed values and near-term predictions.").append(getCurrentDeltaTAlgorithmValidRangeDescription(jd, &marker)).append(" <em>").append(q_("Used by default.")).append("</em>");
+			description = q_("This solution is modified from F. Espenak and J. Meeus, based on Morrison & Stephenson (2004) and a polynomial fit through tabulated values for 1600-2000. Values for 2015-2033 are interpolated from observations and predictions by IERS Rapid Service/Prediction Center.").append(getCurrentDeltaTAlgorithmValidRangeDescription(jd, &marker)).append(" <em>").append(q_("Used by default.")).append("</em>");
 			break;
 		case EspenakMeeusZeroMoonAccel: // PATCHED SOLUTION. Experimental, it may not make sense to keep it in V1.0.
 			description = QString("%1 %2").arg(q_("PATCHED VERSION WITHOUT ADDITIONAL LUNAR ACCELERATION."), q_("This solution by F. Espenak and J. Meeus, based on Morrison & Stephenson (2004) and a polynomial fit through tabulated values for 1600-2000.")).append(getCurrentDeltaTAlgorithmValidRangeDescription(jd, &marker));
@@ -2733,7 +2968,7 @@ void StelCore::initEphemeridesFunctions()
 	de430Available=!de430FilePath.isEmpty();
 	if(de430Available)
 	{
-		qDebug() << "DE430 at: " << de430FilePath;
+		qInfo().noquote() << "DE430 at:" << de430FilePath;
 		EphemWrapper::init_de430(de430FilePath.toStdString().c_str());
 	}
 	setDe430Active(de430Available && conf->value("astro/flag_use_de430", false).toBool());
@@ -2747,7 +2982,7 @@ void StelCore::initEphemeridesFunctions()
 	de431Available=!de431FilePath.isEmpty();
 	if(de431Available)
 	{
-		qDebug() << "DE431 at: " << de431FilePath;
+		qInfo().noquote() << "DE431 at:" << de431FilePath;
 		EphemWrapper::init_de431(de431FilePath.toStdString().c_str());
 	}
 	setDe431Active(de431Available && conf->value("astro/flag_use_de431", false).toBool());
@@ -2761,7 +2996,7 @@ void StelCore::initEphemeridesFunctions()
 	de440Available=!de440FilePath.isEmpty();
 	if(de440Available)
 	{
-		qDebug() << "DE440 at: " << de440FilePath;
+		qInfo().noquote() << "DE440 at:" << de440FilePath;
 		EphemWrapper::init_de440(de440FilePath.toStdString().c_str());
 	}
 	setDe440Active(de440Available && conf->value("astro/flag_use_de440", false).toBool());
@@ -2775,10 +3010,16 @@ void StelCore::initEphemeridesFunctions()
 	de441Available=!de441FilePath.isEmpty();
 	if(de441Available)
 	{
-		qDebug() << "DE441 at: " << de441FilePath;
+		qInfo().noquote() << "DE441 at:" << de441FilePath;
 		EphemWrapper::init_de441(de441FilePath.toStdString().c_str());
 	}
 	setDe441Active(de441Available && conf->value("astro/flag_use_de441", false).toBool());
+
+	minMaxEphemRange = qMakePair(-4000, 8000); // VSOP87
+	if (de430Active || de440Active)
+		minMaxEphemRange = qMakePair(1550, 2650);
+	if (de431Active || de441Active)
+		minMaxEphemRange = qMakePair(-13000, 17000);
 }
 
 // Methods for finding constellation from J2000 position.
@@ -2966,17 +3207,58 @@ Vec3d StelCore::getMouseJ2000Pos() const
 	return mousePosition;
 }
 
+Vec3d StelCore::calculateParallaxDiff(double JD) const {
+	// ICRS coordinates are barycentric (Gaia gives barycentric RA/DEC coordinates)
+	// diff between solar system bayrcentric location at STAR_CATALOG_JDEPOCH and current solar system bayrcentric location
+	Vec3d PosNow = getCurrentPlanet()->getBarycentricEclipticPos(JD);
+	// Transform from heliocentric ecliptic to equatorial coordinates
+	PosNow = matVsop87ToJ2000.upper3x3() * -1. * PosNow;  // need to times -1 because technically it is doing (0,0,0) - PosNow
+	return PosNow;
+}
+
+Vec3d StelCore::getParallaxDiff(double JD) const {
+	// if isArtificial meaning transitioning between planets, use cache and don't recalculate because it will crash
+	if ((fuzzyEquals(JD, cachedParallaxJD, JD_SECOND) && (getCurrentPlanet() == cachedParallaxPlanet)) || (getCurrentPlanet()->getPlanetType() == Planet::isArtificial))
+	{
+		return cachedParallaxDiff;
+	}
+	cachedParallaxDiff = calculateParallaxDiff(JD); // set the cache to the new value
+	cachedParallaxJD = JD; // set the cache to the new value
+	cachedParallaxPlanet = getCurrentPlanet(); 
+    return cachedParallaxDiff;
+}
+
+Vec3d StelCore::calculateAberrationVec(double JD) const {
+	// Solar system barycentric velocity
+	Q_UNUSED(JD);
+	Vec3d vel = getCurrentPlanet()->getBarycentricEclipticVelocity(JD);
+	vel = StelCore::matVsop87ToJ2000 * vel * (AU/(86400.0*SPEED_OF_LIGHT));
+	return vel;
+}
+
+Vec3d StelCore::getAberrationVec(double JD) const {
+	// need to recompute the aberration vector if the JD has changed or the planet has changed
+	if (fuzzyEquals(JD, cachedAberrationJD, JD_SECOND) && (getCurrentPlanet() == cachedAberrationPlanet))
+	{
+		return getAberrationFactor() * cachedAberrationVec;
+	}
+	cachedAberrationVec = StelCore::calculateAberrationVec(JD); // set the cache to the new value
+	cachedAberrationJD = JD; // set the cache to the new value
+	cachedAberrationPlanet = getCurrentPlanet();
+	return getAberrationFactor() * cachedAberrationVec;
+}
+
 QByteArray StelCore::getAberrationShader() const
 {
 	return 1+R"(
-uniform vec3 STELCORE_currentPlanetHeliocentricEclipticVelocity;
+uniform vec3 STELCORE_currentPlanetBarycentricEclipticVelocity;
 // objectDir points to the object as viewed from its comoving frame.
 // Return value represents the apparent direction to this object from a frame
 // that moves with respect to the object at slightly relativistic speeds (v<0.1c).
 // Relative error in aberration angle is about 0.5v/c.
 vec3 applyAberrationToObject(vec3 objectDir)
 {
-	vec3 velocity = STELCORE_currentPlanetHeliocentricEclipticVelocity;
+	vec3 velocity = STELCORE_currentPlanetBarycentricEclipticVelocity;
 	return normalize(objectDir + velocity);
 }
 // viewDir is the direction where the object appears to be when viewed from a
@@ -2985,7 +3267,7 @@ vec3 applyAberrationToObject(vec3 objectDir)
 // Relative error in aberration angle is about 0.5v/c.
 vec3 applyAberrationToViewDir(vec3 viewDir)
 {
-	vec3 velocity = STELCORE_currentPlanetHeliocentricEclipticVelocity;
+	vec3 velocity = STELCORE_currentPlanetBarycentricEclipticVelocity;
 	return normalize(viewDir - velocity);
 }
 )";
@@ -2993,17 +3275,10 @@ vec3 applyAberrationToViewDir(vec3 viewDir)
 
 void StelCore::setAberrationUniforms(QOpenGLShaderProgram& program) const
 {
-	Vec3d velocity;
+	Vec3d velocity(0.);
 	if(getUseAberration())
 	{
-		const auto p = getCurrentPlanet();
-		const auto hev = p->getHeliocentricEclipticVelocity();
-		velocity = StelCore::matVsop87ToJ2000 * hev;
-		velocity *= getAberrationFactor() * (AU/(86400.0*SPEED_OF_LIGHT));
+		velocity = getAberrationFactor() * cachedAberrationVec;
 	}
-	else
-	{
-		velocity = Vec3d(0,0,0);
-	}
-	program.setUniformValue("STELCORE_currentPlanetHeliocentricEclipticVelocity", velocity.toQVector());
+	program.setUniformValue("STELCORE_currentPlanetBarycentricEclipticVelocity", velocity.toQVector());
 }

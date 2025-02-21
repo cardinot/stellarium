@@ -100,6 +100,10 @@ class StelMovementMgr : public StelModule
 		   READ getUserMaxFov
 		   WRITE setUserMaxFov
 		   NOTIFY userMaxFovChanged)
+	Q_PROPERTY(double currentFov
+		   READ getCurrentFov
+		   WRITE setFov
+		   NOTIFY currentFovChanged)
 public:
 	//! Possible mount modes defining the reference frame in which head movements occur.
 	//! MountGalactic and MountSupergalactic is currently only available via scripting API: core.clear("galactic") and core.clear("supergalactic")
@@ -112,7 +116,7 @@ public:
 	Q_ENUM(ZoomingMode)
 
 	StelMovementMgr(StelCore* core);
-	virtual ~StelMovementMgr() Q_DECL_OVERRIDE;
+	~StelMovementMgr() override;
 
 	///////////////////////////////////////////////////////////////////////////
 	// Methods defined in the StelModule class
@@ -124,28 +128,28 @@ public:
 	//! - Enabling/disabling the mouse movement
 	//! - Sets the zoom and movement speeds
 	//! - Sets the auto-zoom duration and mode.
-	virtual void init() Q_DECL_OVERRIDE;
+	void init() override;
 
 	//! Update time-dependent things (triggers a time dragging record if required)
-	virtual void update(double) Q_DECL_OVERRIDE
+	void update(double) override
 	{
 		if (dragTimeMode)
 			addTimeDragPoint(QCursor::pos().x(), QCursor::pos().y());
 	}
 	//! Implement required draw function.  Does nothing.
-	virtual void draw(StelCore*) Q_DECL_OVERRIDE {}
+	void draw(StelCore*) override {}
 	//! Handle keyboard events.
-	virtual void handleKeys(QKeyEvent* event) Q_DECL_OVERRIDE;
+	void handleKeys(QKeyEvent* event) override;
 	//! Handle mouse movement events.
-	virtual bool handleMouseMoves(int x, int y, Qt::MouseButtons b) Q_DECL_OVERRIDE;
+	bool handleMouseMoves(int x, int y, Qt::MouseButtons b) override;
 	//! Handle mouse wheel events.
-	virtual void handleMouseWheel(class QWheelEvent* event) Q_DECL_OVERRIDE;
+	void handleMouseWheel(class QWheelEvent* event) override;
 	//! Handle mouse click events.
-	virtual void handleMouseClicks(class QMouseEvent* event) Q_DECL_OVERRIDE;
+	void handleMouseClicks(class QMouseEvent* event) override;
 	// allow some keypress interaction by plugins.
-	virtual double getCallOrder(StelModuleActionName actionName) const Q_DECL_OVERRIDE;
+	double getCallOrder(StelModuleActionName actionName) const override;
 	//! Handle pinch gesture.
-	virtual bool handlePinch(qreal scale, bool started) Q_DECL_OVERRIDE;
+	bool handlePinch(qreal scale, bool started) override;
 
 	///////////////////////////////////////////////////////////////////////////
 	// Methods specific to StelMovementMgr
@@ -209,19 +213,19 @@ public slots:
 	float getAutoMoveDuration(void) const {return autoMoveDuration;}
 
 	//! Set whether auto zoom out will reset the viewing direction to the initial value
-	void setFlagAutoZoomOutResetsDirection(bool b) {if (flagAutoZoomOutResetsDirection != b) { flagAutoZoomOutResetsDirection = b; emit flagAutoZoomOutResetsDirectionChanged(b);}}
+	void setFlagAutoZoomOutResetsDirection(bool b) {if (flagAutoZoomOutResetsDirection != b) { flagAutoZoomOutResetsDirection = b; StelApp::immediateSave("navigation/auto_zoom_out_resets_direction", b); emit flagAutoZoomOutResetsDirectionChanged(b);}}
 	//! Get whether auto zoom out will reset the viewing direction to the initial value
 	bool getFlagAutoZoomOutResetsDirection(void) const {return flagAutoZoomOutResetsDirection;}
 
 	//! Get whether keys can control zoom
 	bool getFlagEnableZoomKeys() const {return flagEnableZoomKeys;}
 	//! Set whether keys can control zoom
-	void setFlagEnableZoomKeys(bool b) {flagEnableZoomKeys=b; emit flagEnableZoomKeysChanged(b);}
+	void setFlagEnableZoomKeys(bool b) {if (flagEnableZoomKeys!=b) {flagEnableZoomKeys=b; StelApp::immediateSave("navigation/flag_enable_zoom_keys", b); emit flagEnableZoomKeysChanged(b);}}
 
 	//! Get whether keys can control movement
 	bool getFlagEnableMoveKeys() const {return flagEnableMoveKeys;}
 	//! Set whether keys can control movement
-	void setFlagEnableMoveKeys(bool b) {flagEnableMoveKeys=b; emit flagEnableMoveKeysChanged(b); }
+	void setFlagEnableMoveKeys(bool b) {if (flagEnableMoveKeys!=b) {flagEnableMoveKeys=b; StelApp::immediateSave("navigation/flag_enable_move_keys", b); emit flagEnableMoveKeysChanged(b);}}
 
 	//! Get whether being at the edge of the screen activates movement
 	bool getFlagEnableMoveAtScreenEdge() const {return flagEnableMoveAtScreenEdge;}
@@ -231,17 +235,17 @@ public slots:
 	//! Get whether mouse can control movement
 	bool getFlagEnableMouseNavigation() const {return flagEnableMouseNavigation;}
 	//! Set whether mouse can control movement
-	void setFlagEnableMouseNavigation(bool b) {flagEnableMouseNavigation=b; emit flagEnableMouseNavigationChanged(b); }
+	void setFlagEnableMouseNavigation(bool b) {if (flagEnableMouseNavigation!=b){flagEnableMouseNavigation=b; StelApp::immediateSave("navigation/flag_enable_mouse_navigation", b); emit flagEnableMouseNavigationChanged(b);}}
 
 	//! Get whether mouse can control zooming
 	bool getFlagEnableMouseZooming() const {return flagEnableMouseZooming;}
 	//! Set whether mouse can control zooming
-	void setFlagEnableMouseZooming(bool b) {flagEnableMouseZooming=b; emit flagEnableMouseZoomingChanged(b); }
+	void setFlagEnableMouseZooming(bool b) {if (flagEnableMouseZooming!=b) {flagEnableMouseZooming=b; StelApp::immediateSave("navigation/flag_enable_mouse_zooming", b); emit flagEnableMouseZoomingChanged(b);}}
 
 	//! Get the state of flag for indication of mount mode
 	bool getFlagIndicationMountMode() const {return flagIndicationMountMode;}
 	//! Set the state of flag for indication of mount mode
-	void setFlagIndicationMountMode(bool b) { flagIndicationMountMode=b; emit flagIndicationMountModeChanged(b); }
+	void setFlagIndicationMountMode(bool b) { if (flagIndicationMountMode!=b){flagIndicationMountMode=b; StelApp::immediateSave("gui/flag_indication_mount_mode", b); emit flagIndicationMountModeChanged(b);}}
 
 	//! Move the view to a specified J2000 position.
 	//! @param aim The position to move to expressed as a vector.
@@ -321,6 +325,9 @@ public slots:
 
 	//! Deselect the selected object
 	void deselection(void);
+
+	//! Re-select last selected object
+	void reSelectLastObject(void);
 
 	//! If currently zooming, return the target FOV, otherwise return current FOV in degree.
 	double getAimFov(void) const;
@@ -452,6 +459,16 @@ public slots:
 	void setUserMaxFov(double max);
 	double getUserMaxFov() const {return userMaxFov; }
 
+	void setFov(double f)
+	{
+		if (core->getCurrentProjectionType()==StelCore::ProjectionCylinderFill)
+			currentFov=180.0;
+		else
+			currentFov=qBound(minFov, f, maxFov);
+
+		emit currentFovChanged(currentFov);
+	}
+
 signals:
 	//! Emitted when the tracking property changes
 	void flagTrackingChanged(bool b);
@@ -465,6 +482,8 @@ signals:
 	void flagEnableMoveKeysChanged(bool b);
 	void flagEnableZoomKeysChanged(bool b);
 	void userMaxFovChanged(double fov);
+	void currentFovChanged(double fov);
+	void currentDirectionChanged();
 
 private slots:
 	//! Called when the selected object changes.
@@ -486,13 +505,7 @@ private:
 	StelCore* core;          // The core on which the movement are applied
 	QSettings* conf;
 	class StelObjectMgr* objectMgr;
-	void setFov(double f)
-	{
-		if (core->getCurrentProjectionType()==StelCore::ProjectionCylinderFill)
-			currentFov=180.0;
-		else
-			currentFov=qBound(minFov, f, maxFov);
-	}
+
 	// immediately add deltaFov argument to FOV - does not change private var.
 	void changeFov(double deltaFov);
 

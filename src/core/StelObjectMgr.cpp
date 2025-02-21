@@ -27,6 +27,7 @@
 #include "StelMovementMgr.hpp"
 #include "StelSkyDrawer.hpp"
 #include "Planet.hpp"
+#include "StelActionMgr.hpp"
 
 #include <QMouseEvent>
 #include <QString>
@@ -48,6 +49,8 @@ void StelObjectMgr::init()
 	QSettings* conf = StelApp::getInstance().getSettings();
 	Q_ASSERT(conf);
 	setFlagSelectedObjectPointer(conf->value("viewing/flag_show_selection_marker", true).toBool());
+
+	addAction("actionToggle_Selected_Object_Pointer", N_("Miscellaneous"), N_("Toggle visibility of pointers for selected objects"), "objectPointerVisibility", "");
 }
 
 StelObject::InfoStringGroup StelObjectMgr::getCustomInfoStrings()
@@ -408,10 +411,10 @@ bool StelObjectMgr::findAndSelectI18n(const QString &nameI18n, StelModule::StelM
 		return setSelectedObject(obj, action);
 }
 
-bool StelObjectMgr::findAndSelectI18n(const QString &name, const QString &objtype, StelModule::StelModuleSelectAction action)
+bool StelObjectMgr::findAndSelectI18n(const QString &nameI18n, const QString &objtype, StelModule::StelModuleSelectAction action)
 {
 	// Then look for another object
-	StelObjectP obj = searchByNameI18n(name, objtype);
+	StelObjectP obj = searchByNameI18n(nameI18n, objtype);
 	if (!obj)
 		return false;
 	else
@@ -458,8 +461,8 @@ StelObjectP StelObjectMgr::cleverFind(const StelCore* core, const Vec3d& v) cons
 {
 	const StelProjectorP prj = core->getProjection(StelCore::FrameJ2000);
 
-	// Field of view for a searchRadiusPixel pixel diameter circle on screen
-	const double fov_around = core->getMovementMgr()->getCurrentFov()/qMin(prj->getViewportWidth(), prj->getViewportHeight()) * searchRadiusPixel;
+	// Field of view for a searchRadiusPixel pixel diameter circle on User's screen (which may not be the same on scaled display)
+	const double fov_around = core->getMovementMgr()->getCurrentFov()/qMin(prj->getViewportWidth(), prj->getViewportHeight()) * searchRadiusPixel * core->getCurrentStelProjectorParams().devicePixelsPerPixel;
 
 	// Collect the objects inside the range
 	// TODO: normalize v here, and just Q_ASSERT normalized state in the submodules' searchAround() calls.
@@ -472,7 +475,7 @@ StelObjectP StelObjectMgr::cleverFind(const StelCore* core, const Vec3d& v) cons
 				static_cast<float>(core->getSkyDrawer()->getCustomStarMagnitudeLimit()) :
 				core->getSkyDrawer()->getLimitMagnitude();
 	QList<StelObjectP> tmp;
-	for (const auto& obj : qAsConst(candidates))
+	for (const auto& obj : std::as_const(candidates))
 	{
 		if (obj->getSelectPriority(core)<=limitMag)
 			tmp.append(obj);
@@ -487,7 +490,7 @@ StelObjectP StelObjectMgr::cleverFind(const StelCore* core, const Vec3d& v) cons
 
 	StelObjectP sobj;
 	float best_object_value = 100000.f;
-	for (const auto& obj : qAsConst(candidates))
+	for (const auto& obj : std::as_const(candidates))
 	{
 		prj->project(obj->getJ2000EquatorialPos(core), winpos);
 		float distance = static_cast<float>(std::sqrt((xpos-winpos[0])*(xpos-winpos[0]) + (ypos-winpos[1])*(ypos-winpos[1])))*distanceWeight;
@@ -522,18 +525,7 @@ StelObjectP StelObjectMgr::cleverFind(const StelCore* core, int x, int y) const
 		const double dy = y - win.v[1];
 		prj->unProject(x+dx, y+dy, v);
 
-		// Apply annual aberration (backwards). Explan. Suppl. 2013, (7.38)
-		Vec3d v2000(v);
-		if (core->getUseAberration())
-		{
-			v2000.normalize(); // just to be sure...
-			Vec3d vel=core->getCurrentPlanet()->getHeliocentricEclipticVelocity();
-			StelCore::matVsop87ToJ2000.transfo(vel);
-			vel*=core->getAberrationFactor() * (AU/(86400.0*SPEED_OF_LIGHT));
-			v2000-=vel;
-			v2000.normalize();
-		}
-		return cleverFind(core, v2000);
+		return cleverFind(core, v);
 	}
 	return StelObjectP();
 }
@@ -564,6 +556,7 @@ bool StelObjectMgr::setSelectedObject(const StelObjectP obj, StelModule::StelMod
 	// An object has been found
 	QList<StelObjectP> objs;
 	objs.push_back(obj);
+	lastSelectedObject = obj;
 	return setSelectedObject(objs, action);
 }
 
@@ -667,7 +660,7 @@ QVariantMap StelObjectMgr::getObjectInfo(const StelObjectP obj)
 	QVariantMap map;
 	if (!obj)
 	{
-		qDebug() << "getObjectInfo WARNING - object not found";
+		qWarning() << "getObjectInfo: object not found";
 		map.insert("found", false);
 	}
 	else
@@ -683,7 +676,7 @@ QVariantMap StelObjectMgr::getObjectInfo(const StelObjectP obj)
 void StelObjectMgr::setExtraInfoString(const StelObject::InfoStringGroup& flags, const QString &str)
 {
 	extraInfoStrings.remove(flags); // delete all entries with these flags
-	if (str.length()>0)
+	if (!str.isEmpty())
 		extraInfoStrings.insert(flags, str);
 }
 void StelObjectMgr::addToExtraInfoString(const StelObject::InfoStringGroup &flags, const QString &str)

@@ -416,12 +416,12 @@ class StelScriptEngineAgent : public QScriptEngineAgent
 {
 public:
 	explicit StelScriptEngineAgent(QScriptEngine *engine);
-	virtual ~StelScriptEngineAgent() Q_DECL_OVERRIDE {}
+	~StelScriptEngineAgent() override {}
 
 	void setPauseScript(bool pause) { qWarning() << "setPauseScript() is deprecated and will no longer be available in future versions of Stellarium."; isPaused=pause; }
 	bool getPauseScript() { qWarning() << "getPauseScript() is deprecated and will no longer be available in future versions of Stellarium."; return isPaused; }
 
-	void positionChange(qint64 scriptId, int lineNumber, int columnNumber) Q_DECL_OVERRIDE;
+	void positionChange(qint64 scriptId, int lineNumber, int columnNumber) override;
 
 private:
 	bool isPaused;
@@ -505,6 +505,9 @@ StelScriptMgr::StelScriptMgr(QObject *parent): QObject(parent)
 	engine->setAgent(agent);
 #endif
 	initActions();
+	QSettings *conf=StelApp::getInstance().getSettings();
+	flagAllowExternalScreenshotDir=conf->value("scripts/flag_allow_screenshots_dir", false).toBool();
+	flagAllowWriteAbsolutePaths=conf->value("scripts/flag_allow_write_absolute_path", false).toBool();
 }
 
 void StelScriptMgr::initActions()
@@ -597,7 +600,7 @@ QString StelScriptMgr::getHeaderSingleLineCommentText(const QString& s, const QS
 	QFile file(StelFileMgr::findFile("scripts/" + s, StelFileMgr::File));
 	if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
 	{
-		QString msg = QString("WARNING: script file %1 could not be opened for reading").arg(QDir::toNativeSeparators(s));
+		QString msg = QString("Script file %1 could not be opened for reading").arg(QDir::toNativeSeparators(s));
 		emit scriptDebug(msg);
 		qWarning() << msg;
 		return QString();
@@ -697,7 +700,7 @@ QString StelScriptMgr::getDescription(const QString& s)
 	QFile file(StelFileMgr::findFile("scripts/" + s, StelFileMgr::File));
 	if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
 	{
-		QString msg = QString("WARNING: script file %1 could not be opened for reading").arg(QDir::toNativeSeparators(s));
+		QString msg = QString("Script file %1 could not be opened for reading").arg(QDir::toNativeSeparators(s));
 		emit scriptDebug(msg);
 		qWarning() << msg;
 		return QString();
@@ -822,26 +825,15 @@ bool StelScriptMgr::runScriptDirect(const QString& scriptCode, const QString &in
 bool StelScriptMgr::prepareScript( QString &script, const QString &fileName, const QString &includePath)
 {
 	QString absPath;
-	const bool okToRunScriptFromAbsolutePath=StelApp::getInstance().getSettings()->value("scripts/flag_script_allow_absolute_path", false).toBool();
 
 	if (QFileInfo(fileName).isAbsolute())
-	{
-		// Absolute paths may bear a security risk. We need a flag to allow them!
-		if (okToRunScriptFromAbsolutePath)
-			absPath = fileName;
-		else
-		{
-			qWarning() << "SCRIPTING CONFIGURATION ISSUE: You are trying to run a script from absolute pathname.";
-			qWarning() << "  To enable this, edit config.ini and set [scripts]/flag_script_allow_absolute_path=true";
-			return false;
-		}
-	}
+		absPath = fileName;
 	else
 		absPath = StelFileMgr::findFile("scripts/" + fileName);
 
 	if (absPath.isEmpty())
 	{
-		QString msg = QString("WARNING: could not find script file %1").arg(QDir::toNativeSeparators(fileName));
+		QString msg = QString("Could not find script file %1").arg(QDir::toNativeSeparators(fileName));
 		emit scriptDebug(msg);
 		qWarning() << msg;
 		return false;
@@ -852,7 +844,7 @@ bool StelScriptMgr::prepareScript( QString &script, const QString &fileName, con
 	QFile fic(absPath);
 	if (!fic.open(QIODevice::ReadOnly))
 	{
-		QString msg = QString("WARNING: cannot open script: %1").arg(QDir::toNativeSeparators(fileName));
+		QString msg = QString("Cannot open script: %1").arg(QDir::toNativeSeparators(fileName));
 		emit scriptDebug(msg);
 		qWarning() << msg;
 		return false;
@@ -965,7 +957,7 @@ void StelScriptMgr::resumeScript()
 #endif
 }
 
-double StelScriptMgr::getScriptRate()
+double StelScriptMgr::getScriptRate() const
 {
 	return engine->globalObject().property("scriptRateReadOnly").toNumber();
 }
@@ -1096,7 +1088,7 @@ void StelScriptMgr::expand(const QString fileName, const QString &input, QString
 				if (incPath.isEmpty())
 				{
 					QString fail = scriptDir + "/" + incName;
-					qWarning() << "WARNING: file not found! Let's check standard scripts directory...";
+					qWarning() << "File not found! Let's check standard scripts directory...";
 
 					// OK, file is not exists in relative path; Let's check standard scripts directory
 					incPath = StelFileMgr::findFile("scripts/" + incName);
@@ -1105,7 +1097,7 @@ void StelScriptMgr::expand(const QString fileName, const QString &input, QString
 					{
 						fail += " or scripts/" + incName;
 						emit scriptDebug(QString("WARNING: could not find script include file: %1").arg(QDir::toNativeSeparators(incName)));
-						qWarning() << "WARNING: could not find script include file: " << QDir::toNativeSeparators(incName);
+						qWarning() << "Could not find script include file: " << QDir::toNativeSeparators(incName);
 						if( errLoc == -1 ) errLoc = output.length();
 						output += line + " // <<< " + fail + " not found\n";
 						outline++;
@@ -1133,7 +1125,7 @@ void StelScriptMgr::expand(const QString fileName, const QString &input, QString
 				else
 				{
 					emit scriptDebug(QString("WARNING: could not open script include file for reading: %1").arg(QDir::toNativeSeparators(incPath)));
-					qWarning() << "WARNING: could not open script include file for reading: " << QDir::toNativeSeparators(incPath);
+					qWarning() << "Could not open script include file for reading: " << QDir::toNativeSeparators(incPath);
 				   	if( errLoc == -1 ) errLoc = output.length();
 					output += line + " // <<< " + incPath + ": cannot open\n";
 					outline++;
@@ -1204,3 +1196,26 @@ void StelScriptEngineAgent::positionChange(qint64 scriptId, int lineNumber, int 
 	}
 }
 #endif
+
+void StelScriptMgr::setFlagAllowExternalScreenshotDir(bool flag)
+{
+	if (flag!=flagAllowExternalScreenshotDir)
+	{
+		flagAllowExternalScreenshotDir=flag;
+		QSettings* conf = StelApp::getInstance().getSettings();
+		conf->setValue("scripts/flag_allow_screenshots_dir", flag);
+		conf->sync();
+		emit flagAllowExternalScreenshotDirChanged(flag);
+	}
+}
+void StelScriptMgr::setFlagAllowWriteAbsolutePaths(bool flag)
+{
+	if (flag!=flagAllowWriteAbsolutePaths)
+	{
+		flagAllowWriteAbsolutePaths=flag;
+		QSettings* conf = StelApp::getInstance().getSettings();
+		conf->setValue("scripts/flag_allow_write_absolute_path", flag);
+		conf->sync();
+		emit flagAllowWriteAbsolutePathsChanged(flag);
+	}
+}

@@ -53,34 +53,24 @@ public:
 	void update(double deltaTime) {fader.update(static_cast<int>(deltaTime*1000));}
 	bool isLoading() const override { return false; }
 	bool isReadyToRender() const override { return true; }
-	LoadingStatus stepDataLoading() override { return {0,0}; }
-private:
-
-	//! Binds actual VAO if it's supported, sets up the relevant state manually otherwise.
-	void bindVAO();
-	//! Sets the vertex attribute states for the currently bound VAO so that glDraw* commands can work.
-	void setupCurrentVAO();
-	//! Binds zero VAO if VAO is supported, manually disables the relevant vertex attributes otherwise.
-	void releaseVAO();
+	LoadingStatus stepDataLoading() override { return {1,1}; }
 
 private:
 	Vec4i viewport;
-    Skylight& sky;
+	Skylight& sky;
 	Skybright skyb;
 	unsigned int skyResolutionY,skyResolutionX;
 
-	Vec2f* posGrid;
+	QVarLengthArray<Vec2f> posGrid;
 	QOpenGLBuffer posGridBuffer;
 	QOpenGLBuffer indicesBuffer;
-	Vec4f* colorGrid;
+	QVarLengthArray<Vec4f> colorGrid;
 	QOpenGLBuffer colorGridBuffer;
 	QOpenGLVertexArrayObject vao;
 
 	//! Vertex shader used for xyYToRGB computation
 	class QOpenGLShaderProgram* atmoShaderProgram;
 	struct {
-		int ditherPattern;
-		int rgbMaxValue;
 		int alphaWaOverAlphaDa;
 		int oneOverGamma;
 		int term2TimesOneOverMaxdLpOneOverGamma; // original
@@ -96,7 +86,12 @@ private:
 		int doSRGB;
 	} shaderAttribLocations;
 
-	StelTextureSP ditherPatternTex;
+	//! Binds actual VAO if it's supported, sets up the relevant state manually otherwise.
+	void bindVAO();
+	//! Sets the vertex attribute states for the currently bound VAO so that glDraw* commands can work.
+	void setupCurrentVAO();
+	//! Binds zero VAO if VAO is supported, manually disables the relevant vertex attributes otherwise.
+	void releaseVAO();
 };
 
 #endif // ATMOSPHERE_PREETHAM_HPP

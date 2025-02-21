@@ -34,6 +34,7 @@
 #include <QFont>
 
 class StelTranslator;
+class StelSkyCulture;
 class StelToneReproducer;
 class QSettings;
 class StelPainter;
@@ -43,7 +44,7 @@ typedef QSharedPointer<Nebula> NebulaP;
 //! @class NebulaMgr
 //! Manage a collection of nebulae. This class is used
 //! to display the NGC catalog with information, and textures for some of them.
-// GZ: This doc seems outdated/misleading - photo textures are not mamaged here but in StelSkyImageTile
+// GZ: This doc seems outdated/misleading - photo textures are not managed here but in StelSkyImageTile
 
 class NebulaMgr : public StelObjectModule
 {
@@ -115,6 +116,11 @@ class NebulaMgr : public StelObjectModule
 		   WRITE setDesignationUsage
 		   NOTIFY designationUsageChanged
 		   )
+	Q_PROPERTY(bool flagShowOnlyNamedDSO
+		   READ getFlagShowOnlyNamedDSO
+		   WRITE setFlagShowOnlyNamedDSO
+		   NOTIFY flagShowOnlyNamedDSOChanged
+		   )
 	Q_PROPERTY(bool flagUseSizeLimits
 		   READ getFlagSizeLimitsUsage
 		   WRITE setFlagSizeLimitsUsage
@@ -131,6 +137,16 @@ class NebulaMgr : public StelObjectModule
 		   NOTIFY maxSizeLimitChanged
 		   )
 	// Colors
+	Q_PROPERTY(double hintsBrightness
+		   READ getHintsBrightness
+		   WRITE setHintsBrightness
+		   NOTIFY hintsBrightnessChanged
+		   )
+	Q_PROPERTY(double labelsBrightness
+		   READ getLabelsBrightness
+		   WRITE setLabelsBrightness
+		   NOTIFY labelsBrightnessChanged
+		   )
 	Q_PROPERTY(Vec3f labelsColor
 		   READ getLabelsColor
 		   WRITE setLabelsColor
@@ -256,11 +272,6 @@ class NebulaMgr : public StelObjectModule
 		   WRITE setProtoplanetaryNebulaColor
 		   NOTIFY protoplanetaryNebulaeColorChanged
 		   )
-	Q_PROPERTY(Vec3f clusterWithNebulosityColor
-		   READ getClusterWithNebulosityColor
-		   WRITE setClusterWithNebulosityColor
-		   NOTIFY clusterWithNebulosityColorChanged
-		   )
 	Q_PROPERTY(Vec3f hydrogenRegionsColor
 		   READ getHydrogenRegionColor
 		   WRITE setHydrogenRegionColor
@@ -319,7 +330,7 @@ class NebulaMgr : public StelObjectModule
 
 public:
 	NebulaMgr();
-	virtual ~NebulaMgr() Q_DECL_OVERRIDE;
+	~NebulaMgr() override;
 
 	///////////////////////////////////////////////////////////////////////////
 	// Methods defined in the StelModule class
@@ -330,16 +341,16 @@ public:
 	//!  - Load the pointer texture.
 	//!  - Set flags values from ini parser which relate to nebula display.
 	//!  - call updateI18n() to translate names.
-	virtual void init() Q_DECL_OVERRIDE;
+	void init() override;
 
-	//! Draws all nebula objects.
-	virtual void draw(StelCore* core) Q_DECL_OVERRIDE;
+	//! Draws all nebula objects and the pointer.
+	void draw(StelCore* core) override;
 
 	//! Update state which is time dependent.
-	virtual void update(double deltaTime) Q_DECL_OVERRIDE {hintsFader.update(static_cast<int>(deltaTime*1000)); flagShow.update(static_cast<int>(deltaTime*1000));}
+	void update(double deltaTime) override {hintsFader.update(static_cast<int>(deltaTime*1000)); flagShow.update(static_cast<int>(deltaTime*1000));}
 
 	//! Determines the order in which the various modules are drawn.
-	virtual double getCallOrder(StelModuleActionName actionName) const Q_DECL_OVERRIDE;
+	double getCallOrder(StelModuleActionName actionName) const override;
 
 	///////////////////////////////////////////////////////////////////////////
 	// Methods defined in StelObjectModule class
@@ -348,30 +359,30 @@ public:
 	//! @param limitFov the field of view around the position v in which to search for nebulae.
 	//! @param core the StelCore to use for computations.
 	//! @return a list containing the nebulae located inside the limitFov circle around position v.
-	virtual QList<StelObjectP> searchAround(const Vec3d& v, double limitFov, const StelCore* core) const Q_DECL_OVERRIDE;
+	QList<StelObjectP> searchAround(const Vec3d& v, double limitFov, const StelCore* core) const override;
 
 	//! Return the matching nebula object's pointer if exists or an "empty" StelObjectP.
 	//! @param nameI18n The case in-sensitive nebula name or NGC M catalog name : format can
 	//! be M31, M 31, NGC31, NGC 31
-	virtual StelObjectP searchByNameI18n(const QString& nameI18n) const Q_DECL_OVERRIDE;
+	StelObjectP searchByNameI18n(const QString& nameI18n) const override;
 
 	//! Return the matching nebula if exists or Q_NULLPTR.
 	//! @param name The case in-sensitive standard program name
-	virtual StelObjectP searchByName(const QString& name) const Q_DECL_OVERRIDE;
+	StelObjectP searchByName(const QString& name) const override;
 
-	virtual StelObjectP searchByID(const QString &id) const Q_DECL_OVERRIDE { return searchByName(id); }
+	StelObjectP searchByID(const QString &id) const override { return searchByName(id); }
 
 	//! Find and return the list of at most maxNbItem objects auto-completing the passed object English name.
 	//! @param objPrefix the case insensitive first letters of the searched object
 	//! @param maxNbItem the maximum number of returned object names
 	//! @param useStartOfWords the autofill mode for returned objects names
 	//! @return a list of matching object name by order of relevance, or an empty list if nothing match
-	virtual QStringList listMatchingObjects(const QString& objPrefix, int maxNbItem=5, bool useStartOfWords=false) const Q_DECL_OVERRIDE;
+	QStringList listMatchingObjects(const QString& objPrefix, int maxNbItem=5, bool useStartOfWords=false) const override;
 	//! @note Loading deep-sky objects with the proper names only.
-	virtual QStringList listAllObjects(bool inEnglish) const Q_DECL_OVERRIDE;
-	virtual QStringList listAllObjectsByType(const QString& objType, bool inEnglish) const Q_DECL_OVERRIDE;
-	virtual QString getName() const Q_DECL_OVERRIDE { return "Deep-sky objects"; }
-	virtual QString getStelObjectType() const Q_DECL_OVERRIDE { return Nebula::NEBULA_TYPE; }
+	QStringList listAllObjects(bool inEnglish) const override;
+	QStringList listAllObjectsByType(const QString& objType, bool inEnglish) const override;
+	QString getName() const override { return "Deep-sky objects"; }
+	QString getStelObjectType() const override { return Nebula::NEBULA_TYPE; }
 
 	//! Compute the maximum magntiude for which hints will be displayed.
 	float computeMaxMagHint(const class StelSkyDrawer* skyDrawer) const;
@@ -590,16 +601,6 @@ public slots:
 	void setDarkNebulaColor(const Vec3f& c);
 	//! Get current value of the dark nebula color.
 	const Vec3f getDarkNebulaColor(void) const;
-
-	//! Set the color used to draw the cluster associated with nebulosity symbols.
-	//! @param c The color of the cluster associated with nebulosity symbols
-	//! @code
-	//! // example of usage in scripts
-	//! NebulaMgr.setClusterWithNebulosityColor(Vec3f(0.2,0.2,0.2));
-	//! @endcode
-	void setClusterWithNebulosityColor(const Vec3f& c);
-	//! Get current value of the cluster associated with nebulosity color.
-	const Vec3f getClusterWithNebulosityColor(void) const;
 
 	//! Set the color used to draw the star cluster symbols (Open/Globular).
 	//! @param c The color of the cluster symbols
@@ -830,6 +831,11 @@ public slots:
 	//! Get value of flag used to turn on and off DSO type filtering.
 	bool getFlagUseTypeFilters(void) const;
 
+	//! Set flag used to turn on and off Named DSO Only.
+	void setFlagShowOnlyNamedDSO(const bool b);
+	//! Get value of flag used to turn on and off Named DSO Only.
+	bool getFlagShowOnlyNamedDSO(void) const;
+
 	//! Set the limit for min. angular size of displayed DSO.
 	//! @param s the angular size between 1 and 600 arcminutes
 	void setMinSizeLimit(double s);
@@ -870,6 +876,21 @@ public slots:
 	//! @return the amount between 0 and 10. 0 is no hints, 10 is maximum of hints
 	double getHintsAmount(void) const;
 
+	//! Set the brightness used to paint nebulae labels.
+	//! @param a the amount between 0 and 1. 0 is black, 1 is maximum brightness
+	void setLabelsBrightness(double b);
+	//! Get the brightness used to paint nebulae labels.
+	//! @return the amount between 0 and 1. 0 is dark (no labels), 1 is maximum brightness of labels
+	double getLabelsBrightness(void) const;
+
+	//! Set the brightness of nebulae hints.
+	//! @param f the amount between 0 and 10. 0 is no hints, 10 is maximum of hints
+	void setHintsBrightness(double b);
+	//! Get the brightness of nebulae labels.
+	//! @return the amount between 0 and 1. 0 is dark (no hints), 1 is maximum brightness of hints
+	double getHintsBrightness(void) const;
+
+
 signals:
 	//! Emitted when hints are toggled.
 	void flagHintsDisplayedChanged(bool b);
@@ -883,6 +904,7 @@ signals:
 	void flagOutlinesDisplayedChanged(bool b);
 	void flagAdditionalNamesDisplayedChanged(bool b);
 	void designationUsageChanged(bool b);
+	void flagShowOnlyNamedDSOChanged(bool b);
 	void flagSurfaceBrightnessUsageChanged(bool b);
 	void flagSurfaceBrightnessArcsecUsageChanged(bool b);
 	void flagSurfaceBrightnessShortNotationUsageChanged(bool b);
@@ -891,6 +913,8 @@ signals:
 	void maxSizeLimitChanged(double s);
 	void labelsAmountChanged(double a);
 	void hintsAmountChanged(double f);
+	void labelsBrightnessChanged(double b);
+	void hintsBrightnessChanged(double b);
 
 	void labelsColorChanged(const Vec3f & color) const;
 	void circlesColorChanged(const Vec3f & color) const;
@@ -917,7 +941,6 @@ signals:
 	void emissionNebulaeColorChanged(const Vec3f & color) const;
 	void possiblePlanetaryNebulaeColorChanged(const Vec3f & color) const;
 	void protoplanetaryNebulaeColorChanged(const Vec3f & color) const;
-	void clusterWithNebulosityColorChanged(const Vec3f & color) const;
 	void hydrogenRegionsColorChanged(const Vec3f & color) const;
 	void interstellarMatterColorChanged(const Vec3f & color) const;
 	void emissionObjectsColorChanged(const Vec3f & color) const;
@@ -938,15 +961,17 @@ private slots:
 	
 	//! Called when the sky culture is updated.
 	//! Loads native names of deep-sky objects for a given sky culture.
-	//! @param skyCultureDir the name of the directory containing the sky culture to use.
-	void updateSkyCulture(const QString& skyCultureDir);
+	void updateSkyCulture(const StelSkyCulture& skyCulture);
+
+	int loadCultureSpecificNames(const QJsonObject& data);
+	void loadCultureSpecificNameForNamedObject(const QJsonArray& data, const QString& commonName);
 
 	//! Connect from StelApp to reflect font size change.
 	void setFontSizeFromApp(int size){nebulaFont.setPixelSize(size);}
 
 private:
 	//! Search for a nebula object by name, e.g. M83, NGC 1123, IC 1234.
-	NebulaP search(const QString& name);
+	NebulaP searchForCommonName(const QString& name);
 
 	//! Search the Nebulae by position
 	NebulaP search(const Vec3d& pos);
@@ -1009,6 +1034,8 @@ private:
 
 	QVector<NebulaP> dsoArray;		// The DSO list
 	QHash<unsigned int, NebulaP> dsoIndex;
+	QHash<QString/*name*/,NebulaP> commonNameMap;
+	QHash<NebulaP,QVector<QString>> defaultNameMap;
 
 	LinearFader hintsFader;
 	LinearFader flagShow;
@@ -1021,12 +1048,17 @@ private:
 	//! The amount of labels (between 0 and 10)
 	double labelsAmount;
 
+	//! The max brightness setting of hints (between 0 and 1)
+	double hintsBrightness;
+	//! The max brightness setting of labels (between 0 and 1)
+	double labelsBrightness;
+
 	//! The selection pointer texture
 	StelTextureSP texPointer;
 	
 	QFont nebulaFont;      // Font used for names printing
 
-	// For DSO convertor
+	// For DSO converter
 	bool flagConverter;
 	bool flagDecimalCoordinates;
 };

@@ -121,7 +121,7 @@ public:
 	};
 
 	//! Returns a shader that supports the specified operations. Must be called within a GL context.
-	inline QOpenGLShaderProgram* getShader(const GlobalShaderParameters &globals, const S3DScene::Material *mat = Q_NULLPTR);
+	inline QOpenGLShaderProgram* getShader(const GlobalShaderParameters &globals, const S3DScene::Material *mat = nullptr);
 
 	//! Returns the Frustum/Boundingbox Debug shader
 	inline QOpenGLShaderProgram* getDebugShader();
@@ -181,7 +181,7 @@ private:
 		//shader uses an additional point light positioned at the camera that performs additional diffuse illumination
 		TORCH		= (1<<15),
 		//debug shader for AABBs/Frustums
-		DEBUG		= (1<<16),
+		DEBUG_SHADER	= (1<<16),
 		//PCSS shadow filtering
 		PCSS		= (1<<17),
 		//only a single shadow frustum is used
@@ -263,7 +263,7 @@ QOpenGLShaderProgram* ShaderMgr::getShader(const GlobalShaderParameters& globals
 
 QOpenGLShaderProgram* ShaderMgr::getDebugShader()
 {
-	return findOrLoadShader(DEBUG);
+	return findOrLoadShader(DEBUG_SHADER);
 }
 
 QOpenGLShaderProgram* ShaderMgr::getCubeShader()

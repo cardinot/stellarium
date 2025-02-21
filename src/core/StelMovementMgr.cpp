@@ -194,6 +194,7 @@ void StelMovementMgr::init()
 	addAction("actionSwitch_Equatorial_Mount", N_("Miscellaneous"), N_("Switch between equatorial and azimuthal mount"), "equatorialMount", "Ctrl+M");
 	addAction("actionGoto_Selected_Object", movementGroup, N_("Center on selected object"), "tracking", "Space");
 	addAction("actionGoto_Deselection", movementGroup, N_("Deselect the selected object"), "deselection()", "Ctrl+Space");
+	addAction("actionGoto_ReSelect_Last_Selected_Object", movementGroup, N_("Re-select last selected object"), "reSelectLastObject()", "Ctrl+Alt+Space");
 	addAction("actionZoom_In_Auto", movementGroup, N_("Zoom in on selected object"), "autoZoomIn()", "/");
 	addAction("actionZoom_Out_Auto", movementGroup, N_("Zoom out"), "autoZoomOut()", "\\");
 	// AW: Same behaviour has action "actionGoto_Selected_Object" by the fact (Is it for backward compatibility?)
@@ -279,7 +280,12 @@ void StelMovementMgr::bindingFOVActions()
 
 void StelMovementMgr::setEquatorialMount(bool b)
 {
+	const MountMode mm=getMountMode();
+	if ((mm==MountEquinoxEquatorial && b) || (mm==MountAltAzimuthal && !b))
+		return;
+
 	setMountMode(b ? MountEquinoxEquatorial : MountAltAzimuthal);
+	StelApp::immediateSave("navigation/viewing_mode", b ? "equator" : "horizon");
 
 	if (getFlagIndicationMountMode())
 	{
@@ -599,6 +605,13 @@ bool StelMovementMgr::handlePinch(qreal scale, bool started)
 
 void StelMovementMgr::handleMouseClicks(QMouseEvent* event)
 {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+	const auto eventPosX = event->position().x();
+	const auto eventPosY = event->position().y();
+#else
+	const auto eventPosX = event->x();
+	const auto eventPosY = event->y();
+#endif
 	switch (event->button())
 	{
 		case Qt::RightButton:
@@ -625,26 +638,18 @@ void StelMovementMgr::handleMouseClicks(QMouseEvent* event)
 			}
 			else if (event->type()==QEvent::MouseButtonPress)
 			{
-				if (event->modifiers() & Qt::ControlModifier)
+				const auto modifiers = event->modifiers() & (Qt::ControlModifier|Qt::ShiftModifier|Qt::AltModifier);
+				if (modifiers == Qt::ControlModifier)
 				{
 					dragTimeMode=true;
 					beforeTimeDragTimeRate=core->getTimeRate();
 					timeDragHistory.clear();
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-					addTimeDragPoint(event->position().x(), event->position().y());
-#else
-					addTimeDragPoint(event->x(), event->y());
-#endif
+					addTimeDragPoint(eventPosX, eventPosY);
 				}
 				isDragging = true;
 				hasDragged = false;
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-				previousX = event->position().x();
-				previousY = event->position().y();
-#else
-				previousX = event->x();
-				previousY = event->y();
-#endif
+				previousX = eventPosX;
+				previousY = eventPosY;
 				event->accept();
 				return;
 			}
@@ -698,17 +703,9 @@ void StelMovementMgr::handleMouseClicks(QMouseEvent* event)
 					}
 
 					// Try to select object at that position
-				#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-					objectMgr->findAndSelect(core, event->position().x(), event->position().y(), event->modifiers().testFlag(Qt::MetaModifier) ? StelModule::AddToSelection : StelModule::ReplaceSelection);
-				#else
-					objectMgr->findAndSelect(core, event->x(), event->y(), event->modifiers().testFlag(Qt::MetaModifier) ? StelModule::AddToSelection : StelModule::ReplaceSelection);
-				#endif
+					objectMgr->findAndSelect(core, eventPosX, eventPosY, event->modifiers().testFlag(Qt::MetaModifier) ? StelModule::AddToSelection : StelModule::ReplaceSelection);
 			#else
-				#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-					objectMgr->findAndSelect(core, event->position().x(), event->position().y(), event->modifiers().testFlag(Qt::ControlModifier) ? StelModule::AddToSelection : StelModule::ReplaceSelection);
-				#else
-					objectMgr->findAndSelect(core, event->x(), event->y(), event->modifiers().testFlag(Qt::ControlModifier) ? StelModule::AddToSelection : StelModule::ReplaceSelection);
-				#endif
+					objectMgr->findAndSelect(core, eventPosX, eventPosY, event->modifiers().testFlag(Qt::ControlModifier) ? StelModule::AddToSelection : StelModule::ReplaceSelection);
 			#endif
 					if (objectMgr->getWasSelected())
 						setFlagTracking(false);
@@ -1157,7 +1154,7 @@ void StelMovementMgr::updateVisionVector(double deltaTime)
 			move.coef=1.f;
 
 			//qDebug() << "Mount/Pole difference =" << fabs((fabs(viewDirectionMountFrame.v[2]) - 1.));
-			if (fabs((fabs(viewDirectionMountFrame.v[2]) - 1.)) < 0.01 )
+			if (fabs((fabs(viewDirectionMountFrame.v[2]) - 1.)) < 0.00001 )
 			{
 				//qDebug() << "ATTENTION: View towards or near the pole of the mount frame. This would cause black screen or orientation jitter.";
 				//qDebug() << "\tviewDirectionMountFrame=" << viewDirectionMountFrame;
@@ -1283,8 +1280,14 @@ void StelMovementMgr::deselection(void)
 {
 	// Deselect the selected object
 	StelApp::getInstance().getStelObjectMgr().unSelect();
-	setFlagLockEquPos(false);	
-	return;
+	setFlagLockEquPos(false);
+}
+
+void StelMovementMgr::reSelectLastObject(void)
+{
+	StelObjectP lastSelectedObject = objectMgr->getLastSelectedObject();
+	if (!lastSelectedObject.isNull())
+		objectMgr->setSelectedObject(lastSelectedObject);
 }
 
 // Go and zoom to the selected object. (Action linked to key, default "/")
@@ -1619,6 +1622,7 @@ void StelMovementMgr::panView(const double deltaAz, const double deltaAlt)
 		{
 			setViewUpVector(Vec3d(0., 0., 1.));
 		}
+		emit currentDirectionChanged();
 	}
 }
 
@@ -1761,6 +1765,7 @@ void StelMovementMgr::setUserMaxFov(double max)
 		const float prjMaxFov = StelApp::getInstance().getCore()->getProjection(StelProjector::ModelViewTranformP(new StelProjector::Mat4dTransform(Mat4d::identity(),Mat4d::identity())))->getMaxFov();
 		setMaxFov(qMin(userMaxFov, static_cast<double>(prjMaxFov)));
 	}
+	StelApp::immediateSave("navigation/max_fov", userMaxFov);
 	emit userMaxFovChanged(userMaxFov);
 }
 
@@ -1774,9 +1779,15 @@ void StelMovementMgr::moveViewport(double offsetX, double offsetY, const float d
 	targetViewportOffset.set(offsetX, offsetY);
 
 	if(fabs(offsetX - oldTargetViewportOffset[0]) > 1e-10)
+	{
+		StelApp::immediateSave("projection/viewport_center_offset_x", offsetX);
 		emit viewportHorizontalOffsetTargetChanged(offsetX);
+	}
 	if(fabs(offsetY - oldTargetViewportOffset[1]) > 1e-10)
+	{
+		StelApp::immediateSave("projection/viewport_center_offset_y", offsetY);
 		emit viewportVerticalOffsetTargetChanged(offsetY);
+	}
 
 	if (duration<=0.0f)
 	{

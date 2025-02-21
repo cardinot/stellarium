@@ -32,6 +32,7 @@ Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA  02110-1335, USA.
 #include <QPen>
 #include <QPushButton>
 #include <QWidget>
+#include <QGraphicsDropShadowEffect>
 
 CalendarsInfoPanel::CalendarsInfoPanel(Calendars* plugin,
 				 QGraphicsWidget *parent):
@@ -87,13 +88,25 @@ CalendarsInfoPanel::CalendarsInfoPanel(Calendars* plugin,
 	//Night mode
 	connect(&stelApp, SIGNAL(colorSchemeChanged(const QString&)), this, SLOT(setColorScheme(const QString&)));
 	setColorScheme(stelApp.getCurrentStelStyle());
+
+	QSettings* conf = StelApp::getInstance().getSettings();
+	Q_ASSERT(conf);
+	if (conf->value("gui/flag_info_shadow", false).toBool())
+	{
+		// Add a drop shadow for better visibility (not on the infopixmap, though)
+		QGraphicsDropShadowEffect *effect = new QGraphicsDropShadowEffect(this);
+		effect->setBlurRadius(6);
+		effect->setColor(QColor(0, 0, 0));
+		effect->setOffset(0,0);
+		setGraphicsEffect(effect);
+	}
 }
 
-void CalendarsInfoPanel::updatePosition()
+void CalendarsInfoPanel::updatePosition(bool resetPos)
 {
 	qreal bottomBoundingHeight = static_cast<SkyGui*>(parentWidget)->getBottomBarHeight()+5.;
 
-	if (sender())
+	if (sender() || resetPos)
 	{
 		xPos=parentWidget->size().width(); // reset when window has been resized.
 		yPos=static_cast<qreal>(FLT_MAX);

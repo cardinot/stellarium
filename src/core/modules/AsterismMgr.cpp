@@ -71,12 +71,13 @@ void AsterismMgr::init()
 	Q_ASSERT(conf);
 
 	lastLoadedSkyCulture = "dummy";
-	asterFont.setPixelSize(conf->value("viewing/asterism_font_size", 14).toInt());
+	setFontSize(conf->value("viewing/asterism_font_size", 14).toInt());
 	setFlagLines(conf->value("viewing/flag_asterism_drawing").toBool());
 	setFlagRayHelpers(conf->value("viewing/flag_rayhelper_drawing").toBool());
 	setFlagLabels(conf->value("viewing/flag_asterism_name").toBool());
 	setAsterismLineThickness(conf->value("viewing/asterism_line_thickness", 1).toInt());
 	setRayHelperThickness(conf->value("viewing/rayhelper_line_thickness", 1).toInt());
+	setFlagIsolateAsterismSelected(conf->value("viewing/flag_asterism_isolate_selected", false).toBool());
 
 	// Load colors from config file
 	QString defaultColor = conf->value("color/default_color").toString();
@@ -90,7 +91,7 @@ void AsterismMgr::init()
 			this, SLOT(selectedObjectChange(StelModule::StelModuleSelectAction)));
 	StelApp *app = &StelApp::getInstance();
 	connect(app, SIGNAL(languageChanged()), this, SLOT(updateI18n()));
-	connect(&app->getSkyCultureMgr(), SIGNAL(currentSkyCultureChanged(QString)), this, SLOT(updateSkyCulture(const QString&)));
+	connect(&app->getSkyCultureMgr(), &StelSkyCultureMgr::currentSkyCultureChanged, this, &AsterismMgr::updateSkyCulture);
 
 	QString displayGroup = N_("Display Options");
 	addAction("actionShow_Asterism_Lines", displayGroup, N_("Asterism lines"), "linesDisplayed", "Alt+A");	
@@ -109,9 +110,9 @@ double AsterismMgr::getCallOrder(StelModuleActionName actionName) const
 	return 0;
 }
 
-void AsterismMgr::updateSkyCulture(const QString& skyCultureDir)
+void AsterismMgr::updateSkyCulture(const StelSkyCulture& skyCulture)
 {
-	currentSkyCultureID = skyCultureDir;
+	currentSkyCultureID = skyCulture.id;
 
 	StelObjectMgr* objMgr = GETSTELMODULE(StelObjectMgr);
 	const QList<StelObjectP> selectedObject = objMgr->getSelectedObject("Asterism");
@@ -119,30 +120,56 @@ void AsterismMgr::updateSkyCulture(const QString& skyCultureDir)
 		objMgr->unSelect();
 
 	// Check if the sky culture changed since last load, if not don't load anything
-	if (lastLoadedSkyCulture == skyCultureDir)
+	if (lastLoadedSkyCulture == skyCulture.id)
 		return;
 
-	QString fic = StelFileMgr::findFile("skycultures/"+skyCultureDir+"/asterism_lines.fab");
-	if (fic.isEmpty())
+	if (skyCulture.asterisms.isEmpty())
 	{
+		// No data!
+		asterisms.clear();
+		selected.clear();
 		hasAsterism = false;
 		qWarning() << "No asterisms for skyculture" << currentSkyCultureID;
 	}
 	else
 	{
 		hasAsterism = true;
-		loadLines(fic);
-	}
+		for(auto* asterism : asterisms)
+			delete asterism;
+		asterisms.clear();
+		asterisms.resize(skyCulture.asterisms.size());
+		unsigned readOK = 0;
+		for (unsigned n = 0; n < asterisms.size(); ++n)
+		{
+			auto& aster = asterisms[n];
+			aster = new Asterism;
+			if (aster->read(skyCulture.asterisms[n].toObject(), hipStarMgr))
+			{
+				aster->setFlagLines(linesDisplayed);
+				aster->setFlagLabels(namesDisplayed);
+				aster->setFlagRayHelpers(rayHelpersDisplayed);
+				++readOK;
+			}
+			else
+			{
+				delete asterisms[n];
+				asterisms.erase(asterisms.begin() + n);
+				--n;
+			}
+		}
+		qInfo().noquote() << "Loaded" << readOK << "/" << skyCulture.asterisms.size()
+				  << "asterism records successfully for culture" << currentSkyCultureID;
 
-	// load asterism names
-	fic = StelFileMgr::findFile("skycultures/" + skyCultureDir + "/asterism_names.eng.fab");
-	if (!fic.isEmpty())
-		loadNames(fic);
+		// Set current states
+		setFlagLines(linesDisplayed);
+		setFlagLabels(namesDisplayed);
+		setFlagRayHelpers(rayHelpersDisplayed);
+	}
 
 	// Translate asterism names for the new sky culture
 	updateI18n();
 
-	lastLoadedSkyCulture = skyCultureDir;
+	lastLoadedSkyCulture = skyCulture.id;
 }
 
 void AsterismMgr::setLinesColor(const Vec3f& color)
@@ -188,16 +215,17 @@ Vec3f AsterismMgr::getLabelsColor() const
 	return Asterism::labelColor;
 }
 
-void AsterismMgr::setFontSize(const float newFontSize)
+void AsterismMgr::setFontSize(const int newFontSize)
 {
-	if ((static_cast<float>(asterFont.pixelSize()) - newFontSize) != 0.0f)
+	if ((asterFont.pixelSize() - newFontSize) != 0)
 	{
-		asterFont.setPixelSize(static_cast<int>(newFontSize));
+		asterFont.setPixelSize(newFontSize);
+		StelApp::immediateSave("viewing/asterism_font_size", newFontSize);
 		emit fontSizeChanged(newFontSize);
 	}
 }
 
-float AsterismMgr::getFontSize() const
+int AsterismMgr::getFontSize() const
 {
 	return asterFont.pixelSize();
 }
@@ -210,6 +238,7 @@ void AsterismMgr::setAsterismLineThickness(const int thickness)
 		if (asterismLineThickness<=0) // The line can not be negative or zero thickness
 			asterismLineThickness = 1;
 
+		StelApp::immediateSave("viewing/asterism_line_thickness", thickness);
 		emit asterismLineThicknessChanged(thickness);
 	}
 }
@@ -222,69 +251,9 @@ void AsterismMgr::setRayHelperThickness(const int thickness)
 		if (rayHelperThickness<=0) // The line can not be negative or zero thickness
 			rayHelperThickness = 1;
 
+		StelApp::immediateSave("viewing/rayhelper_line_thickness", thickness);
 		emit rayHelperThicknessChanged(thickness);
 	}
-}
-
-void AsterismMgr::loadLines(const QString &fileName)
-{
-	QFile in(fileName);
-	if (!in.open(QIODevice::ReadOnly | QIODevice::Text))
-	{
-		qWarning() << "Can't open asterism data file" << QDir::toNativeSeparators(fileName)  << "for culture" << currentSkyCultureID;
-		Q_ASSERT(0);
-	}
-
-	int totalRecords=0;
-	QString record;
-	static const QRegularExpression commentRx("^(\\s*#.*|\\s*)$");
-	while (!in.atEnd())
-	{
-		record = QString::fromUtf8(in.readLine());
-		if (!commentRx.match(record).hasMatch())
-			totalRecords++;
-	}
-	in.seek(0);
-
-	// delete existing data, if any
-	for (auto* asterism : asterisms)
-		delete asterism;
-
-	asterisms.clear();
-	Asterism *aster = Q_NULLPTR;
-
-	// read the file of line patterns, adding a record per non-comment line
-	int currentLineNumber = 0;	// line in file
-	int readOk = 0;			// count of records processed OK
-	while (!in.atEnd())
-	{
-		record = QString::fromUtf8(in.readLine());
-		currentLineNumber++;
-		if (commentRx.match(record).hasMatch())
-			continue;
-
-		aster = new Asterism;
-		if(aster->read(record, hipStarMgr))
-		{
-			aster->setFlagLines(linesDisplayed);
-			aster->setFlagLabels(namesDisplayed);
-			aster->setFlagRayHelpers(rayHelpersDisplayed);
-			asterisms.push_back(aster);
-			++readOk;
-		}
-		else
-		{
-			qWarning() << "ERROR reading asterism lines record at line " << currentLineNumber << "for culture" << currentSkyCultureID;
-			delete aster;
-		}
-	}
-	in.close();
-	qDebug() << "Loaded" << readOk << "/" << totalRecords << "asterism records successfully for culture" << currentSkyCultureID;
-
-	// Set current states
-	setFlagLines(linesDisplayed);
-	setFlagLabels(namesDisplayed);
-	setFlagRayHelpers(rayHelpersDisplayed);
 }
 
 void AsterismMgr::draw(StelCore* core)
@@ -350,9 +319,6 @@ void AsterismMgr::drawNames(StelPainter& sPainter) const
 		return;
 
 	StelCore *core=StelApp::getInstance().getCore();
-	Vec3d vel=core->getCurrentPlanet()->getHeliocentricEclipticVelocity();
-	vel=StelCore::matVsop87ToJ2000*vel;
-	vel*=core->getAberrationFactor() * (AU/(86400.0*SPEED_OF_LIGHT));
 
 	sPainter.setBlending(true);
 	for (auto* asterism : asterisms)
@@ -362,6 +328,7 @@ void AsterismMgr::drawNames(StelPainter& sPainter) const
 		Vec3d XYZname=asterism->XYZname;
 		if (core->getUseAberration())
 		{
+			const Vec3d vel = core->getAberrationVec(core->getJDE());
 			XYZname.normalize();
 			XYZname+=vel;
 			XYZname.normalize();
@@ -387,82 +354,6 @@ Asterism* AsterismMgr::findFromAbbreviation(const QString& abbreviation) const
 QList<StelObjectP> AsterismMgr::searchAround(const Vec3d&, double, const StelCore*) const
 {
 	return QList<StelObjectP>();
-}
-
-void AsterismMgr::loadNames(const QString& namesFile)
-{
-	// Asterism not loaded yet
-	if (asterisms.empty()) return;
-
-	// clear previous names
-	for (auto* asterism : asterisms)
-	{
-		asterism->englishName.clear();
-	}
-
-	// Open file
-	QFile commonNameFile(namesFile);
-	if (!commonNameFile.open(QIODevice::ReadOnly | QIODevice::Text))
-	{
-		qDebug() << "Cannot open file" << QDir::toNativeSeparators(namesFile);
-		return;
-	}
-
-	// Now parse the file
-	// lines to ignore which start with a # or are empty
-	static const QRegularExpression commentRx("^(\\s*#.*|\\s*)$");
-	static const QRegularExpression recRx("^\\s*(\\S+)\\s+_[(]\"(.*)\"[)]\\s*([\\,\\d\\s]*)\\n");
-	static const QRegularExpression ctxRx("(.*)\",\\s*\"(.*)");
-
-	// keep track of how many records we processed.
-	int totalRecords=0;
-	int readOk=0;
-	int lineNumber=0;
-	while (!commonNameFile.atEnd())
-	{
-		QString record = QString::fromUtf8(commonNameFile.readLine());
-		lineNumber++;
-
-		// Skip comments
-		if (commentRx.match(record).hasMatch())
-			continue;
-
-		totalRecords++;
-
-		QRegularExpressionMatch recMatch=recRx.match(record);
-		if (!recMatch.hasMatch())
-		{
-			qWarning() << "ERROR - cannot parse record at line" << lineNumber << "in asterism names file" << QDir::toNativeSeparators(namesFile) << ":" << record;
-		}
-		else
-		{
-			QString shortName = recMatch.captured(1);
-			Asterism *aster = findFromAbbreviation(shortName);
-			// If the asterism exists, set the English name
-			if (aster != Q_NULLPTR)
-			{
-				QString ctxt = recMatch.captured(2);
-				QRegularExpressionMatch ctxMatch=ctxRx.match(ctxt);
-				if (ctxMatch.hasMatch())
-				{
-					aster->englishName = ctxMatch.captured(1);
-					aster->context = ctxMatch.captured(2);
-				}
-				else
-				{
-					aster->englishName = ctxt;
-					aster->context = "";
-				}
-				readOk++;
-			}
-			else
-			{
-				qWarning() << "WARNING - asterism abbreviation" << shortName << "not found when loading asterism names";
-			}
-		}
-	}
-	commonNameFile.close();
-	qDebug() << "Loaded" << readOk << "/" << totalRecords << "asterism names";
 }
 
 void AsterismMgr::updateI18n()
@@ -499,6 +390,7 @@ void AsterismMgr::setFlagLines(const bool displayed)
 			for (auto* asterism : asterisms)
 				asterism->setFlagLines(linesDisplayed);
 		}
+		StelApp::immediateSave("viewing/flag_asterism_drawing", displayed);
 		emit linesDisplayedChanged(displayed);
 	}
 }
@@ -517,6 +409,7 @@ void AsterismMgr::setFlagRayHelpers(const bool displayed)
 		{
 			asterism->setFlagRayHelpers(rayHelpersDisplayed);
 		}
+		StelApp::immediateSave("viewing/flag_rayhelper_drawing", displayed);
 		emit rayHelpersDisplayedChanged(displayed);
 	}
 }
@@ -541,6 +434,7 @@ void AsterismMgr::setFlagLabels(const bool displayed)
 			for (auto* asterism : asterisms)
 				asterism->setFlagLabels(namesDisplayed);
 		}
+		StelApp::immediateSave("viewing/flag_asterism_name", displayed);
 		emit namesDisplayedChanged(displayed);
 	}
 }
@@ -627,6 +521,7 @@ void AsterismMgr::setFlagIsolateAsterismSelected(const bool isolate)
 				asterism->setFlagLabels(getFlagLabels());
 			}
 		}
+		StelApp::immediateSave("viewing/flag_asterism_isolate_selected", isolate);
 		emit isolateAsterismSelectedChanged(isolate);
 	}
 }
@@ -797,7 +692,7 @@ void AsterismMgr::deselectAsterisms(void)
 		}
 
 		// If any asterism is selected at the moment, then let's do not touch to it!
-		if (omgr->getWasSelected() && selected.size()>0)
+		if (omgr->getWasSelected() && !selected.empty())
 			selected.pop_back();
 
 		// Let's hide all previously selected asterisms

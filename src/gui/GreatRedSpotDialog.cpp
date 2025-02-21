@@ -51,8 +51,8 @@ void GreatRedSpotDialog::createDialogContent()
 	
 	//Signals and slots
 	connect(&StelApp::getInstance(), SIGNAL(languageChanged()), this, SLOT(retranslate()));
-	connect(ui->closeStelWindow, SIGNAL(clicked()), this, SLOT(close()));
-	connect(ui->TitleBar, SIGNAL(movedTo(QPoint)), this, SLOT(handleMovedTo(QPoint)));
+	connect(ui->titleBar, &TitleBar::closeClicked, this, &StelDialog::close);
+	connect(ui->titleBar, SIGNAL(movedTo(QPoint)), this, SLOT(handleMovedTo(QPoint)));
 
 	SolarSystem* ss = GETSTELMODULE(SolarSystem);
 	connectIntProperty(ui->longitudeSpinBox, "SolarSystem.grsLongitude");
@@ -75,5 +75,5 @@ void GreatRedSpotDialog::setGrsJD(QDateTime dt)
 void GreatRedSpotDialog::openRecentGrsMeasurement()
 {
 	QSettings* conf = StelApp::getInstance().getSettings();
-	QDesktopServices::openUrl(QUrl(conf->value("astro/grs_measurements_url", "http://jupos.privat.t-online.de/rGrs.htm").toString()));
+	QDesktopServices::openUrl(QUrl(conf->value("astro/grs_measurements_url", "https://jupos.hier-im-netz.de/rGrs.htm").toString()));
 }

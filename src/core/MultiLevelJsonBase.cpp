@@ -66,7 +66,7 @@ class JsonLoadThread : public QThread
 	public:
 		JsonLoadThread(MultiLevelJsonBase* atile, QByteArray content, bool aqZcompressed=false, bool agzCompressed=false) : QThread(static_cast<QObject*>(atile)),
 			tile(atile), data(content), qZcompressed(aqZcompressed), gzCompressed(agzCompressed){}
-		virtual void run() Q_DECL_OVERRIDE;
+		void run() override;
 	private:
 		MultiLevelJsonBase* tile;
 		QByteArray data;
@@ -84,7 +84,7 @@ void JsonLoadThread::run()
 	}
 	catch (std::runtime_error& e)
 	{
-		qWarning() << "WARNING : Can't parse loaded JSON description: " << e.what();
+		qWarning() << "Can't parse loaded JSON description: " << e.what();
 		tile->errorOccured = true;
 	}
 }
@@ -124,7 +124,7 @@ void MultiLevelJsonBase::initFromUrl(const QString& url)
 			fileName = StelFileMgr::findFile(parent->getBaseUrl()+url);
 			if (fileName.isEmpty())
 			{
-				qWarning() << "WARNING : Can't find JSON description: " << url;
+				qWarning() << "Can't find JSON description: " << url;
 				errorOccured = true;
 				return;
 			}
@@ -142,7 +142,7 @@ void MultiLevelJsonBase::initFromUrl(const QString& url)
 			}
 			catch (std::runtime_error& e)
 			{
-				qWarning() << "WARNING: Can't parse JSON document: " << QDir::toNativeSeparators(fileName) << ":" << e.what();
+				qWarning() << "Can't parse JSON document: " << QDir::toNativeSeparators(fileName) << ":" << e.what();
 				errorOccured = true;
 				f.close();
 				return;
@@ -196,7 +196,7 @@ void MultiLevelJsonBase::initFromQVariantMap(const QVariantMap& map)
 	}
 	catch (std::runtime_error& e)
 	{
-		qWarning() << "WARNING: invalid variant map: " << e.what();
+		qWarning() << "Invalid variant map: " << e.what();
 		errorOccured = true;
 		return;
 	}
@@ -228,7 +228,7 @@ MultiLevelJsonBase::~MultiLevelJsonBase()
 			//loadThread->wait(2000);
 		}
 	}
-	for (auto* tile : qAsConst(subTiles))
+	for (auto* tile : std::as_const(subTiles))
 	{
 		tile->deleteLater();
 	}
@@ -238,7 +238,7 @@ MultiLevelJsonBase::~MultiLevelJsonBase()
 
 void MultiLevelJsonBase::scheduleChildsDeletion()
 {
-	for (auto* tile : qAsConst(subTiles))
+	for (auto* tile : std::as_const(subTiles))
 	{
 		if (tile->timeWhenDeletionScheduled<0)
 			tile->timeWhenDeletionScheduled = StelApp::getInstance().getTotalRunTime();
@@ -249,7 +249,7 @@ void MultiLevelJsonBase::scheduleChildsDeletion()
 void MultiLevelJsonBase::cancelDeletion()
 {
 	timeWhenDeletionScheduled=-1.;
-	for (auto* tile : qAsConst(subTiles))
+	for (auto* tile : std::as_const(subTiles))
 	{
 		tile->cancelDeletion();
 	}
@@ -293,7 +293,7 @@ void MultiLevelJsonBase::downloadFinished()
 	if (httpReply->error()!=QNetworkReply::NoError)
 	{
 		if (httpReply->error()!=QNetworkReply::OperationCanceledError)
-			qWarning() << "WARNING : Problem while downloading JSON description for " << httpReply->request().url().path() << ": "<< httpReply->errorString();
+			qWarning() << "Problem while downloading JSON description for " << httpReply->request().url().path() << ": "<< httpReply->errorString();
 		errorOccured = true;
 		httpReply->deleteLater();
 		httpReply=Q_NULLPTR;
@@ -305,7 +305,7 @@ void MultiLevelJsonBase::downloadFinished()
 	QByteArray content = httpReply->readAll();
 	if (content.isEmpty())
 	{
-		qWarning() << "WARNING : empty JSON description for " << httpReply->request().url().path();
+		qWarning() << "Empty JSON description for " << httpReply->request().url().path();
 		errorOccured = true;
 		httpReply->deleteLater();
 		httpReply=Q_NULLPTR;
@@ -339,7 +339,7 @@ void MultiLevelJsonBase::jsonLoadFinished()
 	}
 	catch (std::runtime_error& e)
 	{
-		qWarning() << "WARNING: invalid variant map: " << e.what();
+		qWarning() << "Invalid variant map: " << e.what();
 		errorOccured = true;
 		return;
 	}
@@ -353,7 +353,7 @@ void MultiLevelJsonBase::deleteUnusedSubTiles()
 		return;
 	const double now = StelApp::getInstance().getTotalRunTime();
 	bool deleteAll = true;
-	for (auto* tile : qAsConst(subTiles))
+	for (auto* tile : std::as_const(subTiles))
 	{
 		if (tile->timeWhenDeletionScheduled<0 || (now-tile->timeWhenDeletionScheduled)<deletionDelay)
 		{
@@ -364,14 +364,14 @@ void MultiLevelJsonBase::deleteUnusedSubTiles()
 	if (deleteAll==true)
 	{
 		//qDebug() << "Delete all tiles for " << this << ": " << constructorUrl;
-		for (auto* tile : qAsConst(subTiles))
+		for (auto* tile : std::as_const(subTiles))
 			tile->deleteLater();
 		subTiles.clear();
 	}
 	else
 	{
 		// Nothing to delete at this level, propagate
-		for (auto* tile : qAsConst(subTiles))
+		for (auto* tile : std::as_const(subTiles))
 			tile->deleteUnusedSubTiles();
 	}
 }

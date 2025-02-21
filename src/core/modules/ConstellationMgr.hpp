@@ -34,6 +34,7 @@ class StarMgr;
 class Constellation;
 class StelProjector;
 class StelPainter;
+class StelSkyCulture;
 
 //! @class ConstellationMgr
 //! Display and manage the constellations.
@@ -62,7 +63,7 @@ class ConstellationMgr : public StelObjectModule
 		   READ getFlagBoundaries
 		   WRITE setFlagBoundaries
 		   NOTIFY boundariesDisplayedChanged)
-	Q_PROPERTY(float fontSize
+	Q_PROPERTY(int fontSize
 		   READ getFontSize
 		   WRITE setFontSize
 		   NOTIFY fontSizeChanged)
@@ -70,6 +71,10 @@ class ConstellationMgr : public StelObjectModule
 		   READ getFlagIsolateSelected
 		   WRITE setFlagIsolateSelected
 		   NOTIFY isolateSelectedChanged)
+	Q_PROPERTY(bool flagConstellationPick
+		   READ getFlagConstellationPick
+		   WRITE setFlagConstellationPick
+		   NOTIFY flagConstellationPickChanged)
 	Q_PROPERTY(Vec3f linesColor
 		   READ getLinesColor
 		   WRITE setLinesColor
@@ -103,43 +108,43 @@ public:
 	//! Constructor
 	ConstellationMgr(StarMgr *stars);
 	//! Destructor
-	virtual ~ConstellationMgr() Q_DECL_OVERRIDE;
+	~ConstellationMgr() override;
 
 	///////////////////////////////////////////////////////////////////////////
 	// Methods defined in the StelModule class
 	//! Initialize the ConstellationMgr.
 	//! Reads from the configuration parser object and updates the loading bar
 	//! as constellation objects are loaded for the required sky culture.
-	virtual void init() Q_DECL_OVERRIDE;
+	void init() override;
 
 	//! Draw constellation lines, art, names and boundaries.
-	virtual void draw(StelCore* core) Q_DECL_OVERRIDE;
+	void draw(StelCore* core) override;
 
 	//! Updates time-varying state for each Constellation.
-	virtual void update(double deltaTime) Q_DECL_OVERRIDE;
+	void update(double deltaTime) override;
 
 	//! Return the value defining the order of call for the given action
 	//! @param actionName the name of the action for which we want the call order
 	//! @return the value defining the order. The closer to 0 the earlier the module's action will be called
-	virtual double getCallOrder(StelModuleActionName actionName) const Q_DECL_OVERRIDE;
+	double getCallOrder(StelModuleActionName actionName) const override;
 
 	///////////////////////////////////////////////////////////////////////////
 	// Methods defined in StelObjectModule class
-	virtual QList<StelObjectP> searchAround(const Vec3d& v, double limitFov, const StelCore* core) const Q_DECL_OVERRIDE;
+	QList<StelObjectP> searchAround(const Vec3d& v, double limitFov, const StelCore* core) const override;
 
 	//! @return the matching constellation object's pointer if exists or Q_NULLPTR
 	//! @param nameI18n The case in-sensitive constellation name
-	virtual StelObjectP searchByNameI18n(const QString& nameI18n) const Q_DECL_OVERRIDE;
+	StelObjectP searchByNameI18n(const QString& nameI18n) const override;
 
 	//! @return the matching constellation if exists or Q_NULLPTR
 	//! @param name The case in-sensitive standard program name (three letter abbreviation)
-	virtual StelObjectP searchByName(const QString& name) const Q_DECL_OVERRIDE;
+	StelObjectP searchByName(const QString& name) const override;
 
-	virtual StelObjectP searchByID(const QString &id) const Q_DECL_OVERRIDE;
+	StelObjectP searchByID(const QString &id) const override;
 
-	virtual QStringList listAllObjects(bool inEnglish) const Q_DECL_OVERRIDE;
-	virtual QString getName() const Q_DECL_OVERRIDE { return "Constellations"; }
-	virtual QString getStelObjectType() const Q_DECL_OVERRIDE;
+	QStringList listAllObjects(bool inEnglish) const override;
+	QString getName() const override { return "Constellations"; }
+	QString getStelObjectType() const override;
 	//! Describes how to display constellation labels. The viewDialog GUI has a combobox which corresponds to these values.
 	enum ConstellationDisplayStyle
 	{
@@ -244,9 +249,9 @@ public slots:
 	bool getFlagLabels(void) const;
 
 	//! Set the font size used for constellation names display
-	void setFontSize(const float newFontSize);
+	void setFontSize(const int newFontSize);
 	//! Get the font size used for constellation names display
-	float getFontSize() const;
+	int getFontSize() const;
 
 	//! Set the way how constellation names are displayed: abbreviated/as-given/translated
 	//! @param style the new display style
@@ -314,8 +319,9 @@ signals:
 	void artIntensityChanged(const double intensity);
 	void boundariesColorChanged(const Vec3f & color);
 	void boundariesDisplayedChanged(const bool displayed);
-	void fontSizeChanged(const float newSize);
+	void fontSizeChanged(const int newSize);
 	void isolateSelectedChanged(const bool isolate);
+	void flagConstellationPickChanged(const bool mode);
 	void linesColorChanged(const Vec3f & color);
 	void linesDisplayedChanged(const bool displayed);
 	void namesColorChanged(const Vec3f & color);
@@ -333,7 +339,7 @@ private slots:
 
 	//! Loads new constellation data and art if the SkyCulture has changed.
 	//! @param skyCultureDir the name of the directory containing the sky culture to use.
-	void updateSkyCulture(const QString& skyCultureDir);
+	void updateSkyCulture(const StelSkyCulture& skyCulture);
 
 	//! Update i18n names from English names according to current
 	//! locale, and update font for locale.
@@ -347,37 +353,17 @@ private:
 	void setFlagCheckLoadingData(const bool flag) { checkLoadingData = flag; }
 	bool getFlagCheckLoadingData(void) const { return checkLoadingData; }
 
-	//! Read constellation names from the given file.
-	//! @param namesFile Name of the file containing the constellation names
-	//!        in a format consisting of abbreviation, native name and translatable english name.
-	//! @note The abbreviation must occur in the lines file loaded first in @name loadLinesAndArt()!
-	void loadNames(const QString& namesFile);
-
 	//! Load constellation line shapes, art textures and boundaries shapes from data files.
-	//! @param fileName The name of the constellation data file
-	//! @param artFileName The name of the constellation art data file
-	//! @param cultureName A string ID of the current skyculture
-	//! @note The abbreviation used in @param filename is required for cross-identifying translatable names in @name loadNames():
-	void loadLinesAndArt(const QString& fileName, const QString& artfileName, const QString& cultureName);
+	//! @param constellationsData The structure describing all the constellations
+	void loadLinesNamesAndArt(const QJsonArray& constellationsData, const StelSkyCulture& culture, bool preferNativeNames);
 
 	//! Load the constellation boundary file.
 	//! This function deletes any currently loaded constellation boundaries
-	//! and loads a new set from the file passed as the parameter.  The boundary
-	//! data file consists of whitespace separated values (space, tab or newline).
-	//! Each boundary may span multiple lines, and consists of the following ordered
-	//! data items:
-	//!  - The number of vertices which make up in the boundary (integer).
-	//!  - For each vertex, two floating point numbers describing the ra and dec
-	//!    of the vertex.
-	//!  - The number of constellations which this boundary separates (always 2).
-	//!  - Two constellation abbreviations representing the constellations which
-	//!    the boundary separates.
-	//! @param conCatFile the path to the file which contains the constellation boundary data.
-	bool loadBoundaries(const QString& conCatFile);
-
-	//! Read seasonal rules for displaying constellations from the given file.
-	//! @param rulesFile Name of the file containing the seasonal rules
-	void loadSeasonalRules(const QString& rulesFile);
+	//! and loads a new set from the data passed as the parameter.
+	//! @param epoch: Specified as JSON key "edges_epoch".
+	//! Can be "Bxxxx.x" (Besselian year), "Jxxxx.x" (Julian year), "JDjjjjjjjj.jjj" (Julian day number) and pure doubles as JD.
+	//! The most common cases, "B1875" (for IAU boundaries) and "J2000" are handled most efficiently.
+	bool loadBoundaries(const QJsonArray& boundaryData, const QString& epoch);
 
 	//! Draw the constellation lines at the epoch given by the StelCore.
 	void drawLines(StelPainter& sPainter, const StelCore* core) const;
@@ -415,15 +401,14 @@ private:
 	StarMgr* hipStarMgr;
 
 	bool isolateSelected; // true to pick individual constellations.
-	bool constellationPickEnabled;
+	bool flagConstellationPick; // TODO: CLEAR DESCRIPTION
 	std::vector<std::vector<Vec3d> *> allBoundarySegments;
-
-	QString lastLoadedSkyCulture;	// Store the last loaded sky culture directory name
 
 	QStringList constellationsEnglishNames;
 
 	//! this controls how constellations (and also star names) are printed: Abbreviated/as-given/translated
 	ConstellationDisplayStyle constellationDisplayStyle;
+	static const QMap<QString, ConstellationDisplayStyle>ConstellationDisplayStyleMap;
 
 	// These are THE master settings - individual constellation settings can vary based on selection status
 	float artFadeDuration;

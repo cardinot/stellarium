@@ -69,6 +69,7 @@ class StelGui : public QObject, public StelGuiBase
 	Q_PROPERTY(bool flagShowGalacticGridButton READ getFlagShowGalacticGridButton WRITE setFlagShowGalacticGridButton NOTIFY flagShowGalacticGridButtonChanged )
 	Q_PROPERTY(bool flagShowEclipticGridButton READ getFlagShowEclipticGridButton WRITE setFlagShowEclipticGridButton NOTIFY flagShowEclipticGridButtonChanged )
 	Q_PROPERTY(bool flagShowConstellationBoundariesButton READ getFlagShowConstellationBoundariesButton WRITE setFlagShowConstellationBoundariesButton NOTIFY flagShowConstellationBoundariesButtonChanged )
+	Q_PROPERTY(bool flagShowConstellationArtsButton READ getFlagShowConstellationArtsButton WRITE setFlagShowConstellationArtsButton NOTIFY flagShowConstellationArtsButtonChanged )
 	Q_PROPERTY(bool flagShowAsterismLinesButton READ getFlagShowAsterismLinesButton WRITE setFlagShowAsterismLinesButton NOTIFY flagShowAsterismLinesButtonChanged )
 	Q_PROPERTY(bool flagShowAsterismLabelsButton READ getFlagShowAsterismLabelsButton WRITE setFlagShowAsterismLabelsButton NOTIFY flagShowAsterismLabelsButtonChanged )
 	Q_PROPERTY(bool flagUseButtonsBackground   READ getFlagUseButtonsBackground   WRITE setFlagUseButtonsBackground   NOTIFY flagUseButtonsBackgroundChanged)
@@ -128,65 +129,89 @@ public:
 	const StelObject::InfoStringGroup& getInfoTextFilters() const override;
 
 public slots:
-	//! Set the state of the flag of usage background for GUI buttons
-	void setFlagUseButtonsBackground(bool b);
-
-	//! Set the state of the flag for kinetic scrolling
-	void setFlagUseKineticScrolling(bool b);
-
-	//! Set the state of the flag for enable focus on day spinner in Date and Time dialog
-	void setFlagEnableFocusOnDaySpinner(bool b);
-
-	//! Define whether the button for exit should be visible
-	void setFlagShowQuitButton(bool b);
-
 	//! Define whether the buttons toggling image flip should be visible
+	//! This immediately also stores flag to config.ini
 	void setFlagShowFlipButtons(bool b);
 
 	//! Define whether the button toggling nebulae background should be visible
+	//! This immediately also stores flag to config.ini
 	void setFlagShowNebulaBackgroundButton(bool b);
 
-	//! Define whether the button toggling DSS survey (TOAST) should be visible
-	void setFlagShowDSSButton(bool b);
-
-	//! Define whether the button toggling cardinal should be visible
-	void setFlagShowCardinalButton(bool b);
-
-	//! Define whether the button toggling compass marks should be visible
-	void setFlagShowCompassButton(bool b);
-
-	//! Define whether the button toggling HiPS surveys should be visible
-	void setFlagShowHiPSButton(bool b);
-
-	//! Define whether the button for centering on selected object should be visible. If not, user can still press SPACE to center.
-	void setFlagShowGotoSelectedObjectButton(bool b);
-
-	//! Define whether the button toggling nightmode should be visible in addition to the Ctrl+N hotkey.
-	void setFlagShowNightmodeButton(bool b);
-
-	//! Define whether the button toggling fullscreen view should be visible in addition to F11 hotkey.
-	void setFlagShowFullscreenButton(bool b);
-
 	//! Define whether the button toggling observing list should be visible
+	//! This immediately also stores flag to config.ini
 	void setFlagShowObsListButton(bool b);
 
 	//! Define whether the button toggling ICRS grid should be visible
+	//! This immediately also stores flag to config.ini
 	void setFlagShowICRSGridButton(bool b);
 
 	//! Define whether the button toggling galactic grid should be visible
+	//! This immediately also stores flag to config.ini
 	void setFlagShowGalacticGridButton(bool b);
 
 	//! Define whether the button toggling ecliptic grid should be visible
+	//! This immediately also stores flag to config.ini
 	void setFlagShowEclipticGridButton(bool b);
 
 	//! Define whether the button toggling constellation boundaries should be visible
+	//! This immediately also stores flag to config.ini
 	void setFlagShowConstellationBoundariesButton(bool b);
 
+	//! Define whether the button toggling constellation arts should be visible
+	//! This immediately also stores flag to config.ini
+	void setFlagShowConstellationArtsButton(bool b);
+
 	//! Define whether the button toggling asterism lines should be visible
+	//! This immediately also stores flag to config.ini
 	void setFlagShowAsterismLinesButton(bool b);
 
 	//! Define whether the button toggling asterism labels should be visible
+	//! This immediately also stores flag to config.ini
 	void setFlagShowAsterismLabelsButton(bool b);
+
+	//! Define whether the button toggling DSS survey (TOAST) should be visible
+	//! This immediately also stores flag to config.ini
+	void setFlagShowDSSButton(bool b);
+
+	//! Define whether the button toggling HiPS surveys should be visible
+	//! This immediately also stores flag to config.ini
+	void setFlagShowHiPSButton(bool b);
+
+	//! Define whether the button for centering on selected object should be visible. If not, user can still press SPACE to center.
+	//! This immediately also stores flag to config.ini
+	void setFlagShowGotoSelectedObjectButton(bool b);
+
+	//! Define whether the button toggling nightmode should be visible in addition to the Ctrl+N hotkey.
+	//! This immediately also stores flag to config.ini
+	void setFlagShowNightmodeButton(bool b);
+
+	//! Define whether the button toggling fullscreen view should be visible in addition to F11 hotkey.
+	//! This immediately also stores flag to config.ini
+	void setFlagShowFullscreenButton(bool b);
+
+	//! Define whether the button for exit should be visible
+	//! This immediately also stores flag to config.ini
+	void setFlagShowQuitButton(bool b);
+
+	//! Define whether the button toggling cardinal should be visible
+	//! This immediately also stores flag to config.ini
+	void setFlagShowCardinalButton(bool b);
+
+	//! Define whether the button toggling compass marks should be visible
+	//! This immediately also stores flag to config.ini
+	void setFlagShowCompassButton(bool b);
+
+	//! Set the state of the flag of usage background for GUI buttons
+	//! This immediately also stores flag to config.ini
+	void setFlagUseButtonsBackground(bool b);
+
+	//! Set the state of the flag for kinetic scrolling
+	//! This immediately also stores flag to config.ini
+	void setFlagUseKineticScrolling(bool b);
+
+	//! Set the state of the flag for enable focus on day spinner in Date and Time dialog
+	//! This immediately also stores flag to config.ini
+	void setFlagEnableFocusOnDaySpinner(bool b);
 
 	//! Set the auto-hide status of the horizontal toolbar.
 	//! When set to true, the horizontal toolbar will auto-hide itself, only
@@ -262,6 +287,8 @@ public slots:
 	bool getFlagShowEclipticGridButton() const;
 	//! Get whether the button toggling constellation boundaries is visible
 	bool getFlagShowConstellationBoundariesButton() const;
+	//! Get whether the button toggling constellation arts is visible
+	bool getFlagShowConstellationArtsButton() const;
 	//! Get whether the button toggling asterism lines is visible
 	bool getFlagShowAsterismLinesButton() const;
 	//! Get whether the button toggling asterism labels is visible
@@ -291,6 +318,7 @@ signals:
 	void flagShowGalacticGridButtonChanged(bool b);
 	void flagShowEclipticGridButtonChanged(bool b);
 	void flagShowConstellationBoundariesButtonChanged(bool b);
+	void flagShowConstellationArtsButtonChanged(bool b);
 	void flagShowAsterismLinesButtonChanged(bool b);
 	void flagShowAsterismLabelsButtonChanged(bool b);
 	void flagShowCardinalButtonChanged(bool b);
@@ -306,12 +334,13 @@ private slots:
 	void scriptStopped();
 #endif
 	//! Load color scheme from the given ini file and section name
-	void setStelStyle(const QString& style) override Q_DECL_FINAL;
+	void setStelStyle(const QString& style) override final;
 	void quit();	
 	void updateI18n();
 	void copySelectedObjectInfo(void);
 
 private:
+	void updateStelStyle();
 	//! convenience method to find an action in the StelActionMgr.
 	StelAction* getAction(const QString& actionName) const;
 
@@ -348,7 +377,7 @@ private:
 	ScriptConsole* scriptConsole;
 #endif
 	AstroCalcDialog* astroCalcDialog;
-    ObsListDialog* obsListDialog;
+	ObsListDialog* obsListDialog;
 
 	bool flagShowFlipButtons;
 	StelButton* flipVert;
@@ -383,6 +412,9 @@ private:
 
 	bool flagShowConstellationBoundariesButton;
 	StelButton* btShowConstellationBoundaries;
+
+	bool flagShowConstellationArtsButton;
+	StelButton* btShowConstellationArts;
 
 	bool flagShowAsterismLinesButton;
 	StelButton* btShowAsterismLines;

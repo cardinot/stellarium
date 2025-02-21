@@ -5,17 +5,18 @@
 # 
 # Translators:
 # cardinot <mcardinot@gmail.com>, 2022
-# Zdeněk Moravec <moravec@hapteplice.cz>, 2022
+# Alexander V. Wolf <alex.v.wolf@gmail.com>, 2022
+# Zdeněk Moravec <moravec@hapteplice.cz>, 2024
 # 
 #, fuzzy
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: stellarium@googlegroups.com\n"
-"POT-Creation-Date: 2022-09-30 13:16+0700\n"
-"PO-Revision-Date: 2019-01-19 14:25+0000\n"
-"Last-Translator: Zdeněk Moravec <moravec@hapteplice.cz>, 2022\n"
-"Language-Team: Czech (https://www.transifex.com/stellarium/teams/80998/cs/)\n"
+"POT-Creation-Date: 2024-12-02 12:46+0700\n"
+"PO-Revision-Date: 2022-10-05 14:25+0000\n"
+"Last-Translator: Zdeněk Moravec <moravec@hapteplice.cz>, 2024\n"
+"Language-Team: Czech (https://app.transifex.com/stellarium/teams/80998/cs/)\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -718,7 +719,7 @@ msgstr "Snadná dvojhvězda viditelná pouhým okem"
 
 #: scripts/double_stars.ssc:37
 msgid "Zubenelgenubi"
-msgstr "Zuben Elgenubi"
+msgstr "Zubenelgenubi"
 
 #: scripts/double_stars.ssc:37
 msgid "3.83 arcminutes (NW)"
@@ -958,43 +959,47 @@ msgstr "Zásuvný modul Historické supernovy není načten!"
 
 #: scripts/h400_tour.ssc:16
 msgid "The Herschel 400 Catalogue"
-msgstr ""
+msgstr "Katalog Herschel 400"
 
 #: scripts/h400_tour.ssc:17
 msgid ""
 "The Herschel 400 is a subset of John Herschel's General Catalogue of Nebulae"
 " and Clusters"
 msgstr ""
+"Kalatlog Herschel 400 je podmnožinou Všeobecného katalogu mlhovin a "
+"hvězdokup od Johna Herschela."
 
 #: scripts/h400_tour.ssc:18
 msgid ""
 "published in 1864 of 5,000 objects, and hence also of the New General "
 "Catalogue."
 msgstr ""
+"publikovaného v roce 1864 a zahrnujícího 5000 objektů. Je tedy zároveň "
+"podmnožinou Nového všeobecného katalogu (New General Catalogue, NGC)."
 
 #: scripts/h400_tour.ssc:19
 msgid "Vital statistics:"
-msgstr ""
+msgstr "Důležité statistiky:"
 
 #: scripts/h400_tour.ssc:20
 msgid "* The catalogue contains 400 objects"
-msgstr ""
+msgstr "* Katalog obsahuje 400 objektů"
 
 #: scripts/h400_tour.ssc:21
 msgid "* All objects are from the NGC"
-msgstr ""
+msgstr "* Všechny objekty jsou z NGC"
 
 #: scripts/h400_tour.ssc:22
 msgid "* All visible in mid northern latitudes"
-msgstr ""
+msgstr "* Všechny jsou viditelné ze středních severních zeměpisných šířek"
 
 #: scripts/h400_tour.ssc:23
 msgid "* All visible in 150 mm (6\") or larger telescopes"
-msgstr ""
+msgstr "* Všechny lze spatřit ve 150 mm (6\") nebo větších dalekohledech"
 
 #: scripts/largest_known_stars.ssc:12
 msgid "PZ Cassiopeiae"
-msgstr ""
+msgstr "PZ Cassiopeiae"
 
 #: scripts/largest_known_stars.ssc:13
 msgid ""
@@ -1002,20 +1007,25 @@ msgid ""
 "The quoted size is the average size parameter, the true\n"
 "value is from 1,340-1,940."
 msgstr ""
+"PZ Cas se nachází v oblasti s vysokou extinkcí na prachových částicích.\n"
+"Uvedená velikost je průměrným parametrem, skutečná\n"
+"hodnota leží v rozmezí 1340 až 1940."
 
 #: scripts/largest_known_stars.ssc:14
 msgid "VX Sagittarii"
-msgstr ""
+msgstr "VX Sagittarii"
 
 #: scripts/largest_known_stars.ssc:15
 msgid ""
 "VX Sgr is a pulsating variable with a large visual range\n"
 "and varies significantly in size."
 msgstr ""
+"VX Sgr je pulsující proměnná hvězda s velkými rozdíly v jasnosti\n"
+"ve viditelném oboru, která mění značně svou velikost."
 
 #: scripts/largest_known_stars.ssc:16
 msgid "VV Cephei A"
-msgstr ""
+msgstr "VV Cephei A"
 
 #: scripts/largest_known_stars.ssc:17
 msgid ""
@@ -1023,10 +1033,13 @@ msgid ""
 "losing mass to its B-type companion VV Cephei B for at least\n"
 "part of its orbit."
 msgstr ""
+"VV Cep A je velmi zdeformovaná hvězda v dvojhvězdné soustavě,\n"
+"která alespoň v části své dráhy ztrácí svou hmotu ve prospěch svého \n"
+"společníka VV Cephei B, který je hvězdou spektrálního typu B."
 
 #: scripts/largest_known_stars.ssc:18
 msgid "RW Cephei"
-msgstr ""
+msgstr "RW Cephei"
 
 #: scripts/largest_known_stars.ssc:19
 msgid ""
@@ -1034,10 +1047,13 @@ msgid ""
 "of 3) and spectral type (observed from G8 to M), thus\n"
 "probably also in diameter."
 msgstr ""
+"RW Cep je proměnná jak v jasnosti (minimálně s faktorem 3),\n"
+"tak ve spektrálním typu (pozorovány změny od G8 do M),\n"
+"patrně tedy dochází i ke změnám jejího průměru."
 
 #: scripts/largest_known_stars.ssc:20
 msgid "VY Canis Majoris"
-msgstr ""
+msgstr "VY Canis Majoris"
 
 #: scripts/largest_known_stars.ssc:21
 msgid ""
@@ -1045,10 +1061,13 @@ msgid ""
 "contradicted stellar evolutionary theory, improved measurements\n"
 "and estimates have brought it down to size."
 msgstr ""
+"Kdysi byla považována za rudou hyperobří hvězdu tak velikou, \n"
+"že odporovala teorii vývoje hvězd, vylepšená měření a odhady\n"
+"ale její velikost nakonec zmenšily."
 
 #: scripts/largest_known_stars.ssc:22
 msgid "AH Scorpii"
-msgstr ""
+msgstr "AH Scorpii"
 
 #: scripts/largest_known_stars.ssc:23
 msgid ""
@@ -1056,28 +1075,33 @@ msgid ""
 "and an estimated 20% in total luminosity. The variation in diameter\n"
 "is not clear because the temperature also varies."
 msgstr ""
+"AH Sco je proměnná měnící jasnost ve vizuální oblasti o téměř 3 magnitudy,\n"
+"a odhaden o 20% v celkovém zářivém výkonu. Změny v jejím průměru\n"
+"nedokážeme určit, neboť dochází též ke změnám její teploty."
 
 #: scripts/largest_known_stars.ssc:24
 msgid "V766 Centauri A"
-msgstr ""
+msgstr "V766 Centauri A"
 
 #: scripts/largest_known_stars.ssc:25
 msgid ""
 "V766 Centauri A is a highly distorted star in a close binary system,\n"
 "losing mass to the secondary."
 msgstr ""
+"V766 Centauri A je velmi zdeformváná hvězda v soustavě těsné dvojhvězdy,\n"
+"která ztrácí svojí hmotu ve prospěch druhé složky soustavy."
 
 #: scripts/largest_known_stars.ssc:26
 msgid "KW Sagittarii"
-msgstr ""
+msgstr "KW Sagittarii"
 
 #: scripts/largest_known_stars.ssc:27
 msgid "BC Cygni"
-msgstr ""
+msgstr "BC Cygni"
 
 #: scripts/largest_known_stars.ssc:28
 msgid "RT Carinae"
-msgstr ""
+msgstr "RT Carinae"
 
 #: scripts/largest_known_stars.ssc:29
 msgid "Betelgeuse"
@@ -1085,174 +1109,178 @@ msgstr "Betelgeuse"
 
 #: scripts/largest_known_stars.ssc:30
 msgid "Ninth brightest star in the night sky."
-msgstr ""
+msgstr "Devátá nejjasnější hvězda noční oblohy."
 
 #: scripts/largest_known_stars.ssc:31
 msgid "Mu Cephei (Herschel's \"Garnet Star\")"
-msgstr ""
+msgstr "Mí Cephei (Herschelova \"Granátová hvězda\")"
 
 #: scripts/largest_known_stars.ssc:32
 msgid "S Persei"
-msgstr ""
+msgstr "S Persei"
 
 #: scripts/largest_known_stars.ssc:33
 msgid "In the Perseus Double Cluster."
-msgstr ""
+msgstr "Ve Dvojité hvězdokupě v Perseovi"
 
 #: scripts/largest_known_stars.ssc:34
 msgid "RW Cygni"
-msgstr ""
+msgstr "RW Cygni"
 
 #: scripts/largest_known_stars.ssc:35
 msgid "Antares A"
-msgstr ""
+msgstr "Antares A"
 
 #: scripts/largest_known_stars.ssc:36
 msgid "Theta Muscae"
-msgstr ""
+msgstr "Théta Muscae"
 
 #: scripts/largest_known_stars.ssc:37
 msgid "V1749 Cygni"
-msgstr ""
+msgstr "V1749 Cygni"
 
 #: scripts/largest_known_stars.ssc:38
 msgid "TZ Cassiopeiae"
-msgstr ""
+msgstr "TZ Cassiopeiae"
 
 #: scripts/largest_known_stars.ssc:39
 msgid "IX Carinae"
-msgstr ""
+msgstr "IX Carinae"
 
 #: scripts/largest_known_stars.ssc:40
 msgid "TV Geminorum"
-msgstr ""
+msgstr "TV Geminorum"
 
 #: scripts/largest_known_stars.ssc:41
 msgid "T Cephei"
-msgstr ""
+msgstr "T Cephei"
 
 #: scripts/largest_known_stars.ssc:42
 msgid "V382 Carinae"
-msgstr ""
+msgstr "V382 Carinae"
 
 #: scripts/largest_known_stars.ssc:43 scripts/largest_known_stars.ssc:45
 msgid "Yellow hypergiant, one of the rarest types of star."
-msgstr ""
+msgstr "Žlutý hyperobr, velmi vzácně se vyskytující typ hvězdy."
 
 #: scripts/largest_known_stars.ssc:44
 msgid "V509 Cassiopeiae"
-msgstr ""
+msgstr "V509 Cassiopeiae"
 
 #: scripts/largest_known_stars.ssc:46
 msgid "CE Tauri (\"Ruby Star\")"
-msgstr ""
+msgstr "CE Tauri (\"Rubínová hvězda\")"
 
 #: scripts/largest_known_stars.ssc:47
 msgid ""
 "Can be occulted by the Moon, allowing accurate determination\n"
 "of its apparent diameter."
 msgstr ""
+"Může být zakryta Měsícem, což umožňuje přesné určení\n"
+"jejího zdánlivého průměru."
 
 #: scripts/largest_known_stars.ssc:48
 msgid "R Leporis (\"Hind's Crimson Star\")"
-msgstr ""
+msgstr "R Leporis (\"Hindova karmínová hvězda\")"
 
 #: scripts/largest_known_stars.ssc:49
 msgid "One of the largest carbon stars existent in the Milky Way Galaxy."
-msgstr ""
+msgstr "Jedna z největších existujících uhlíkových hvězd v Mléčné dráze."
 
 #: scripts/largest_known_stars.ssc:50
 msgid "Alpha Herculis (\"Ras Algethi\")"
-msgstr ""
+msgstr "Alfa Herculis (\"Ras Algethi\")"
 
 #: scripts/largest_known_stars.ssc:51
 msgid "Rho Cassiopeiae"
-msgstr ""
+msgstr "Ró Cassiopeiae"
 
 #: scripts/largest_known_stars.ssc:52
 msgid "A yellow hypergiant, one of the rarest types of a star."
-msgstr ""
+msgstr "Žlutý hyperobr, velmi vzácně se vyskytující typ hvězdy."
 
 #: scripts/largest_known_stars.ssc:53
 msgid "Mira A (Omicron Ceti)"
-msgstr ""
+msgstr "Mira A (Omikron Ceti)"
 
 #: scripts/largest_known_stars.ssc:54
 msgid "Prototype Mira variable"
-msgstr ""
+msgstr "Prototyp proměnných hvězd zvaných miridy"
 
 #: scripts/largest_known_stars.ssc:55
 msgid "R Doradus"
-msgstr ""
+msgstr "R Doradus"
 
 #: scripts/largest_known_stars.ssc:56
 msgid "Star with the second largest apparent size after the Sun."
 msgstr ""
+"Hvězda s druhou největší zdánlivou velikostí na obloze, hned po Slunci."
 
 #: scripts/largest_known_stars.ssc:57
 msgid "La Superba (Y Canum Venaticorum)"
-msgstr ""
+msgstr "La Superba (Y Canum Venaticorum)"
 
 #: scripts/largest_known_stars.ssc:58
 msgid "One of the coolest and reddest known stars."
-msgstr ""
+msgstr "Jedna z nejchladnějších a nejrudějších hvězd."
 
 #: scripts/largest_known_stars.ssc:59
 msgid "Deneb (Alpha Cygni)"
-msgstr ""
+msgstr "Deneb (alfa Cygni)"
 
 #: scripts/largest_known_stars.ssc:60
 msgid "19th brightest star in the night sky."
-msgstr ""
+msgstr "19. nejjasnější hvězda noční oblohy."
 
 #: scripts/largest_known_stars.ssc:61
 msgid "Rigel A (Beta Orionis A)"
-msgstr ""
+msgstr "Rigel A (beta Orionis A)"
 
 #: scripts/largest_known_stars.ssc:62
 msgid "Seventh brightest star in the night sky."
-msgstr ""
+msgstr "Sedmá nejjasnější hvězda noční oblohy."
 
 #: scripts/largest_known_stars.ssc:63
 msgid "Canopus (Alpha Carinae)"
-msgstr ""
+msgstr "Canopus (alfa Carinae)"
 
 #: scripts/largest_known_stars.ssc:64
 msgid "Second brightest star in the night sky."
-msgstr ""
+msgstr "Druhá nejjasnější hvězda noční oblohy."
 
 #: scripts/largest_known_stars.ssc:65
 msgid "Aldebaran (Alpha Tauri)"
-msgstr ""
+msgstr "Aldebaran (alfa Tauri)"
 
 #: scripts/largest_known_stars.ssc:66
 msgid "VV Cephei B"
-msgstr ""
+msgstr "VV Cephei B"
 
 #: scripts/largest_known_stars.ssc:67
 msgid "The B-type main sequence companion of VV Cephei A."
 msgstr ""
+"Průvodcem VV Cephei A je hvězda hlavní posloupnosti spektrálního typu B."
 
 #: scripts/largest_known_stars.ssc:92
 msgid "Solar radii"
-msgstr ""
+msgstr "poloměrů Slunce"
 
 #: scripts/constellations_tour.ssc:19
-#: scripts/western_constellations_tour.ssc:22
+#: scripts/modern_constellations_tour.ssc:22
 msgid "Press Ctrl+T to un-hide the toolbar"
-msgstr ""
+msgstr "Stisknutím Ctrl+T odkryjte panel nástrojů"
 
 #: scripts/triple_sunrise_and_sunsets.ssc:17
 msgid "Location: Mercury, 0N, 90E"
-msgstr ""
+msgstr "Poloha: Merkur, 0 S, 90 V"
 
 #: scripts/triple_sunrise_and_sunsets.ssc:51
 msgid "Just Before Sunrise....."
-msgstr ""
+msgstr "Krátce před východem Slunce..."
 
 #: scripts/triple_sunrise_and_sunsets.ssc:54
 msgid "Surface of Mercury"
-msgstr ""
+msgstr "Povrch Merkuru"
 
 #: scripts/triple_sunrise_and_sunsets.ssc:57
 msgid "Day"
@@ -1260,35 +1288,35 @@ msgstr "Den"
 
 #: scripts/triple_sunrise_and_sunsets.ssc:92
 msgid "Sunrise #1"
-msgstr ""
+msgstr "Východ Slunce č. 1"
 
 #: scripts/triple_sunrise_and_sunsets.ssc:120
 msgid "Retro"
-msgstr ""
+msgstr "Zpětný chod"
 
 #: scripts/triple_sunrise_and_sunsets.ssc:141
 msgid "Sunset #1"
-msgstr ""
+msgstr "Západ Slunce č. 1"
 
 #: scripts/triple_sunrise_and_sunsets.ssc:159
 msgid "Sunrise #2"
-msgstr ""
+msgstr "Východ Slunce č. 2"
 
 #: scripts/triple_sunrise_and_sunsets.ssc:173
 msgid "Later in the afternoon"
-msgstr ""
+msgstr "Později odpoledne"
 
 #: scripts/triple_sunrise_and_sunsets.ssc:205
 msgid "Sunset #2"
-msgstr ""
+msgstr "Západ Slunce č. 2"
 
 #: scripts/triple_sunrise_and_sunsets.ssc:225
 msgid "Sunrise #3"
-msgstr ""
+msgstr "Východ Slunce č. 3"
 
 #: scripts/triple_sunrise_and_sunsets.ssc:244
 msgid "Sunset #3"
-msgstr ""
+msgstr "Západ Slunce č. 3"
 
 #: scripts/saturnian_analemma.ssc:17
 msgid "Saturnian analemma"
@@ -1308,381 +1336,381 @@ msgstr "Messierovský Maraton"
 
 #: scripts/messier_marathon.ssc:85
 msgid "Difficulty is 0"
-msgstr ""
+msgstr "Obtížnost je 0"
 
 #: scripts/messier_marathon.ssc:86
 msgid "Very diffuse, very dark, very difficult"
-msgstr ""
+msgstr "velmi difúzní, velmi tmavá, velmi obtížná"
 
 #: scripts/messier_marathon.ssc:87
 msgid "Easier than M74, small"
-msgstr ""
+msgstr "jednodušší než M74, malá"
 
 #: scripts/messier_marathon.ssc:88
 msgid "Visible to the naked eye, no difficulty"
-msgstr ""
+msgstr "viditelná pouhým okem, bez potíží"
 
 #: scripts/messier_marathon.ssc:89
 msgid "More difficult than M110 to verify, small"
-msgstr ""
+msgstr "na ověření obtížnější než M110, malá"
 
 #: scripts/messier_marathon.ssc:90
 msgid "In the west of M31, it is easy to detect"
-msgstr ""
+msgstr "západně od M31, snadno viditelná"
 
 #: scripts/messier_marathon.ssc:91
 msgid "Diffuse, great, brighter"
-msgstr ""
+msgstr "difúzní, velká, jasnější"
 
 #: scripts/messier_marathon.ssc:92
 msgid "Small, easy to locate, not as horror as imagined"
-msgstr ""
+msgstr "malá, je snadné ji najít, není tak strašná, jak se o ní mluví"
 
 #: scripts/messier_marathon.ssc:93
 msgid "Difficult to locate, easy to detect and verify"
-msgstr ""
+msgstr "je obtížné ji najít, snadno viditelná a ověřitelná"
 
 #: scripts/messier_marathon.ssc:94
 msgid "Small, easy to locate, don't confuse with NGC663"
-msgstr ""
+msgstr "malá, je snadné ji najít, nezaměnit s NGC663"
 
 #: scripts/messier_marathon.ssc:95
 msgid "Large, scattered, easy"
-msgstr ""
+msgstr "velká, rozptýlená, snadná"
 
 #: scripts/messier_marathon.ssc:96
 msgid "Fuzzy, easy to find, accompanied by a small star"
-msgstr ""
+msgstr "rozmazaná, je snadné ji najít, doprovázená malou hvězdou"
 
 #: scripts/messier_marathon.ssc:97
 msgid "Visible to the naked eye, better than M31"
-msgstr ""
+msgstr "viditelná pouhým okem, lépe než M31"
 
 #: scripts/messier_marathon.ssc:98
 msgid "Very close to M42, not easy to see the fuzzy"
-msgstr ""
+msgstr "velmi blízko M42, není snadno vidět jak je rozmazaná"
 
 #: scripts/messier_marathon.ssc:99
 msgid "Small, dark, few stars around"
-msgstr ""
+msgstr "malá, tmavá, kolem několik hvězd"
 
 #: scripts/messier_marathon.ssc:100
 msgid "Easy to locate, easy to detect in a good transparency."
-msgstr ""
+msgstr "je snadné ji najít, snadno viditelná při dobré průhlednosti atmosféry"
 
 #: scripts/messier_marathon.ssc:101
 msgid "Visible to the naked eye, easier"
-msgstr ""
+msgstr "viditelná pouhým okem, jednodušší"
 
 #: scripts/messier_marathon.ssc:102 scripts/messier_marathon.ssc:154
 #: scripts/messier_marathon.ssc:175
 msgid "Easy to locate and verify"
-msgstr ""
+msgstr "je snadné ji najít a ověřit"
 
 #: scripts/messier_marathon.ssc:103 scripts/messier_marathon.ssc:104
 msgid "Large, scattered"
-msgstr ""
+msgstr "velká, rozptýlená"
 
 #: scripts/messier_marathon.ssc:105
 msgid "Bright, easy to verify, difficult to locate"
-msgstr ""
+msgstr "jasná, snadno ověřitelná, je těžké ji najít"
 
 #: scripts/messier_marathon.ssc:106
 msgid "Large, difficult to locate, easy to confuse with NGC2506"
-msgstr ""
+msgstr "velká, je těžké ji najít, snadno zaměnitelná s NGC2506"
 
 #: scripts/messier_marathon.ssc:107
 msgid "Easy, more scattered"
-msgstr ""
+msgstr "snadná, rozptýlenější"
 
 #: scripts/messier_marathon.ssc:108
 msgid "Easy, fuzzy"
-msgstr ""
+msgstr "snadná, rozmazaná"
 
 #: scripts/messier_marathon.ssc:109
 msgid "Easy, scattered"
-msgstr ""
+msgstr "snadná, rozptýlená"
 
 #: scripts/messier_marathon.ssc:110
 msgid "Easy, large, scattered"
-msgstr ""
+msgstr "snadná, velká, rozptýlená"
 
 #: scripts/messier_marathon.ssc:111
 msgid "Very close to M96 and M105"
-msgstr ""
+msgstr "velmi blízko k M96 a M105"
 
 #: scripts/messier_marathon.ssc:112
 msgid "Easy to locate and verify, assist to verify M95 and M105"
-msgstr ""
+msgstr "je snadné ji najít a ověřit, pomáhá při ověření M95 a M105"
 
 #: scripts/messier_marathon.ssc:113
 msgid "Dark"
-msgstr ""
+msgstr "tmavá"
 
 #: scripts/messier_marathon.ssc:114
 msgid "Very close, it’s like M81 and M82"
-msgstr ""
+msgstr "velmi blízko, je to jako M81 a M82"
 
 #: scripts/messier_marathon.ssc:115
 msgid "There is NGC3628 nearby, don't think you have found a new comet"
-msgstr ""
+msgstr "nedaleko je NGC3628, nemyslete si, že jste našli novou kometu"
 
 #: scripts/messier_marathon.ssc:116
 msgid "Like the darkened M33, require a high sky conditions"
-msgstr ""
+msgstr "jako potemnělá M33, vyžaduje vyníkající oblohu"
 
 #: scripts/messier_marathon.ssc:117
 msgid "Difficult to locate, 4 stars of the inverted 7 shape beside"
-msgstr ""
+msgstr "je těžké ji najít, 4 hvězdy ve tvaru obrácené 7 vedle ní"
 
 #: scripts/messier_marathon.ssc:118
 msgid "Easy, you can see the companion galaxy"
-msgstr ""
+msgstr "snadná, můžete vidět i doprovodnou galaxii"
 
 #: scripts/messier_marathon.ssc:119
 msgid "Easy to verify"
-msgstr ""
+msgstr "snadno ověřitelná"
 
 #: scripts/messier_marathon.ssc:120
 msgid "Not easy to locate, small, slightly dark"
-msgstr ""
+msgstr "není snadné ji najít, malá, trochu tmavší"
 
 #: scripts/messier_marathon.ssc:121
 msgid "Not easy to locate, bright"
-msgstr ""
+msgstr "není snadné ji najít, jasná"
 
 #: scripts/messier_marathon.ssc:122
 msgid "Not easy to locate, no bright stars nearby"
-msgstr ""
+msgstr "není snadné ji najít, žádné jasné hvězdy nejsou poblíž"
 
 #: scripts/messier_marathon.ssc:123
 msgid "Easy to locate"
-msgstr ""
+msgstr "je snadné ji najít"
 
 #: scripts/messier_marathon.ssc:124
 msgid "Beside M60, it is easy to verify"
-msgstr ""
+msgstr "vedle M60, je snadno ověřitelná"
 
 #: scripts/messier_marathon.ssc:125
 msgid "It’s an easier one"
-msgstr ""
+msgstr "snadná"
 
 #: scripts/messier_marathon.ssc:126
 msgid "As bright as M85, easy to verify"
-msgstr ""
+msgstr "jasná jako M85, snadno ověřitelná"
 
 #: scripts/messier_marathon.ssc:127
 msgid "Dark, hard to look"
-msgstr ""
+msgstr "tmavá, obtížně viditelná"
 
 #: scripts/messier_marathon.ssc:128
 msgid "Easy to detect than M89, easy to locate"
-msgstr ""
+msgstr "snadněji viditelná než M89, je snadné ji najít"
 
 #: scripts/messier_marathon.ssc:129
 msgid "Easy to locate, detect once"
-msgstr ""
+msgstr "je snadné ji najít, ihned viditelná"
 
 #: scripts/messier_marathon.ssc:130
 msgid "There is an NGC4438 near M84 and M86, don't make a mistake"
-msgstr ""
+msgstr "v blízkosti M84 a M86 se nachází NGC4438, nenechte se splést"
 
 #: scripts/messier_marathon.ssc:131
 msgid "M84 are together, closer to NGC4438"
-msgstr ""
+msgstr "je vedle M84, blíže k NGC4438"
 
 #: scripts/messier_marathon.ssc:132
 msgid "Just above M90, almost like M90"
-msgstr ""
+msgstr "těsně nad M90, téměř jako M90"
 
 #: scripts/messier_marathon.ssc:133
 msgid "Look hard"
-msgstr ""
+msgstr "viditelná obtížně"
 
 #: scripts/messier_marathon.ssc:134
 msgid "This bunch of things in the Virgo Cluster is not easy"
-msgstr ""
+msgstr "tato hromada věcí v kupě galaxií v Panně není snadná"
 
 #: scripts/messier_marathon.ssc:135
 msgid "M99 is easier to verify than M98"
-msgstr ""
+msgstr "M99 je snadnější na ověření než M98"
 
 #: scripts/messier_marathon.ssc:136
 msgid "First find M100 and then find M98 and M99"
-msgstr ""
+msgstr "nejprve vyhledejte M100 a pak nalezněte M98 a M99"
 
 #: scripts/messier_marathon.ssc:137
 msgid "Far away, but very bright, easy to find"
-msgstr ""
+msgstr "daleko, ale velmi jasná, snadná k nalezení"
 
 #: scripts/messier_marathon.ssc:138
 msgid "Small, not easy to locate, a little difficult"
-msgstr ""
+msgstr "malá, není snadné ji najít, trochu obtížná"
 
 #: scripts/messier_marathon.ssc:139
 msgid "Not easy to locate, easy to verify"
-msgstr ""
+msgstr "není snadné ji najít, snadno ověřitelná"
 
 #: scripts/messier_marathon.ssc:140
 msgid "Easy to locate and verify, small"
-msgstr ""
+msgstr "je snadné ji najít a ověřit, malá"
 
 #: scripts/messier_marathon.ssc:141
 msgid "Easy to verify, a star 5 magnitude nearby"
-msgstr ""
+msgstr "je snadné ji ověřit, blízká hvězda 5. magnitudy"
 
 #: scripts/messier_marathon.ssc:142
 msgid "Visible to the naked eye, big, bright"
-msgstr ""
+msgstr "viditelná pouhým okem, velká, jasná"
 
 #: scripts/messier_marathon.ssc:143
 msgid "Bright and big in the galaxies, not hard to find"
-msgstr ""
+msgstr "jasná a velká galaxie, není těžké ji najít"
 
 #: scripts/messier_marathon.ssc:144
 msgid "Bright, easy to verify"
-msgstr ""
+msgstr "jasná, je snadné ji ověřit"
 
 #: scripts/messier_marathon.ssc:145
 msgid "Easy to verify in a right location"
-msgstr ""
+msgstr "je snadné ji ověřit na správném místě"
 
 #: scripts/messier_marathon.ssc:146
 msgid "Famous, like the shoulder pole star"
-msgstr ""
+msgstr "slavná jako Polárka"
 
 #: scripts/messier_marathon.ssc:147
 msgid "It may be easier to locate from the Dragon"
-msgstr ""
+msgstr "může být snadnější ji najít od Draka"
 
 #: scripts/messier_marathon.ssc:148
 msgid "Small, 20 times or more is still easy to detect"
-msgstr ""
+msgstr "malá, při zvětšení 20x nebo více je snadno objevitelná"
 
 #: scripts/messier_marathon.ssc:149
 msgid "More difficult than M57, not easy to locate, very small"
-msgstr ""
+msgstr "obtížnější než M57, není snadné ji najít, velmi malá"
 
 #: scripts/messier_marathon.ssc:150
 msgid "Easy, small, looks like a cluster of stars 7-8 magnitude"
-msgstr ""
+msgstr "snadná, malá, vypadá jako hvězdokupa 7.-8. magnitudy"
 
 #: scripts/messier_marathon.ssc:151
 msgid "Larger than imagined, very scattered, not easy to locate"
-msgstr ""
+msgstr "větší než si představujete, velmi rozptýlená, není snadné ji najít"
 
 #: scripts/messier_marathon.ssc:152
 msgid "Find M71 first, then find M27, and will be easier to locate"
-msgstr ""
+msgstr "nalezněte nejprve M71, pak nalezněte M27, a bude snadnější ji najít"
 
 #: scripts/messier_marathon.ssc:153
 msgid "Easy to locate, easy to verify in 50 binos"
-msgstr ""
+msgstr "je snadné ji najít, snadná k ověření v 50mm binokuláru"
 
 #: scripts/messier_marathon.ssc:155
 msgid "Bright, like M13, easy to find"
-msgstr ""
+msgstr "jasná, podobná M13, je snadné ji najít"
 
 #: scripts/messier_marathon.ssc:156
 msgid "Detect it with M12, brighter than M12"
-msgstr ""
+msgstr "zjistíte ji pomocí M12, jasnější než M12"
 
 #: scripts/messier_marathon.ssc:157
 msgid "Difficult to locate, easy to verify"
-msgstr ""
+msgstr "je těžké ji najít, snadno ověřitelná"
 
 #: scripts/messier_marathon.ssc:158
 msgid "Small, not easy to verify"
-msgstr ""
+msgstr "malá, není snadné ji ověřit"
 
 #: scripts/messier_marathon.ssc:159
 msgid "Bright, big, don't forget to detect NGC6144 nearby"
-msgstr ""
+msgstr "jasná, velká, nezapomeňte se podívat na blízkou NGC6144"
 
 #: scripts/messier_marathon.ssc:160
 msgid "Not easy to verify at low power, easy at high power"
-msgstr ""
+msgstr "není snadné ji ověřit při malém zvětšení, snadné při velkém zvětšení"
 
 #: scripts/messier_marathon.ssc:161
 msgid "Follow the line of M4 and Antares, easy to verify"
-msgstr ""
+msgstr "sledujte spojnici M4 a Antara, je snadné ji ověřit"
 
 #: scripts/messier_marathon.ssc:162
 msgid "Looking down from M19, darker than M19, but easy to verify"
-msgstr ""
+msgstr "při pohledu dolů od M19, tmavší než M19, ale snadno ověřitelná"
 
 #: scripts/messier_marathon.ssc:163
 msgid "Easy to locate, bright, and almost like M13"
-msgstr ""
+msgstr "je snadné ji najít, jasná, vypadá téměř jako M13"
 
 #: scripts/messier_marathon.ssc:164
 msgid "Easy to locate M26 by M11"
-msgstr ""
+msgstr "je snadné M26 najít pomocí M11"
 
 #: scripts/messier_marathon.ssc:165
 msgid "Easy"
-msgstr ""
+msgstr "snadná"
 
 #: scripts/messier_marathon.ssc:166 scripts/messier_marathon.ssc:179
 msgid "Difficult to locate, bright, easy to verify"
-msgstr ""
+msgstr "je těžké ji najít, jasná, snadno ověřitelná"
 
 #: scripts/messier_marathon.ssc:167
 msgid "Beside M81, vertical to each other"
-msgstr ""
+msgstr "vedle M81, navzájem svisle nad sebou"
 
 #: scripts/messier_marathon.ssc:168
 msgid "Large, a little fuzzy"
-msgstr ""
+msgstr "velká, trochu rozmazaná"
 
 #: scripts/messier_marathon.ssc:168
 msgid "Beside M20"
-msgstr ""
+msgstr "vedle M20"
 
 #: scripts/messier_marathon.ssc:169
 msgid "It’s not hard to see the diffuse nebula"
-msgstr ""
+msgstr "není těžké vidět difúzní mlhovinu"
 
 #: scripts/messier_marathon.ssc:170
 msgid "Visible to the naked eye, extremely easy"
-msgstr ""
+msgstr "viditelná pouhým okem, extrémně snadná"
 
 #: scripts/messier_marathon.ssc:171
 msgid "Big, easy"
-msgstr ""
+msgstr "velká, snadná"
 
 #: scripts/messier_marathon.ssc:171
 msgid "Easy to locate and verify, bright"
-msgstr ""
+msgstr "je snadné ji najít a ověřit, jasná"
 
 #: scripts/messier_marathon.ssc:172
 msgid "M13 second"
-msgstr ""
+msgstr "druhá M13"
 
 #: scripts/messier_marathon.ssc:173
 msgid "Too big, scattered, not easy to verify"
-msgstr ""
+msgstr "příliš velká, rozptýlená, není snadné ji ověřit"
 
 #: scripts/messier_marathon.ssc:174
 msgid "Bigger than M6"
-msgstr ""
+msgstr "větší než M6"
 
 #: scripts/messier_marathon.ssc:176
 msgid "Brighter than imagined, can be detected with 60 binos"
-msgstr ""
+msgstr "jasnější než si myslíte, může být spatřena 60mm binokulárem"
 
 #: scripts/messier_marathon.ssc:177
 msgid "Darker than M97, long strips, look hard"
-msgstr ""
+msgstr "tmavší než M97, dlouhé pruhy, je obtížné ji spatřit"
 
 #: scripts/messier_marathon.ssc:178
 msgid "Easy to verify with more than 20 times binos"
-msgstr ""
+msgstr "je snadné ji ověřit binokulárem zvětšujícím 20x a více"
 
 #: scripts/messier_marathon.ssc:180
 msgid "In the morning light, it looks too hard, dark"
-msgstr ""
+msgstr "v ranním svítání je těžké ji spatřit, tmavá"
 
 #: scripts/messier_marathon.ssc:289
 msgid "cannot be seen now"
-msgstr ""
+msgstr "nyní není viditelná"

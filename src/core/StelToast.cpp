@@ -60,7 +60,7 @@ ToastTile::ToastTile(ToastSurvey* survey, int level, int x, int y)
 ToastTile::~ToastTile()
 {
 	//delete all currently owned tiles
-	for (auto* child : qAsConst(subTiles))
+	for (auto* child : std::as_const(subTiles))
 	{
 		delete child;
 	}
@@ -144,9 +144,7 @@ void ToastTile::prepareDraw(Vec3f color)
 
 	if (core->getUseAberration())
 	{
-		Vec3d vel=core->getCurrentPlanet()->getHeliocentricEclipticVelocity();
-		vel=StelCore::matVsop87ToJ2000*vel;
-		vel*=core->getAberrationFactor() * (AU/(86400.0*SPEED_OF_LIGHT));
+		const Vec3d vel = core->getAberrationVec(core->getJDE());
 		vertexArray=QVector<Vec3d>(originalVertexArray);
 		for (int i=0; i<originalVertexArray.size(); i++)
 		{
@@ -252,7 +250,7 @@ void ToastTile::draw(StelPainter* sPainter, const SphericalCap& viewportShape, i
 	if (!isVisible(viewportShape, maxVisibleLevel))
 	{
 		// Clean up to save memory.
-		for (auto* child : qAsConst(subTiles))
+		for (auto* child : std::as_const(subTiles))
 		{
 			//put into cache instead of delete
 			//the subtiles of the child remain owned by it
@@ -268,7 +266,7 @@ void ToastTile::draw(StelPainter* sPainter, const SphericalCap& viewportShape, i
 		drawTile(sPainter, color);
 
 	// Draw all the children
-	for (auto* child : qAsConst(subTiles))
+	for (auto* child : std::as_const(subTiles))
 	{
 		child->draw(sPainter, viewportShape, maxVisibleLevel, color);
 	}

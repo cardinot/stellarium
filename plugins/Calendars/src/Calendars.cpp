@@ -142,12 +142,13 @@ Calendars::Calendars():
 	flagShowTibetan(false)
 {
 	setObjectName("Calendars");
-	font.setPixelSize(15);
+	font.setPixelSize(StelApp::getInstance().getScreenFontSize());
 
 	configDialog = new CalendarsDialog();
 	conf = StelApp::getInstance().getSettings();
 
 	infoPanel=new CalendarsInfoPanel(this, static_cast<StelGui*>(StelApp::getInstance().getGui())->getSkyGui());
+	connect(&StelApp::getInstance(), &StelApp::screenFontSizeChanged, this, [=](int size){font.setPixelSize(size); infoPanel->setFont(font); infoPanel->updatePosition(true);});
 }
 
 /*************************************************************************
@@ -213,7 +214,7 @@ void Calendars::init()
 	}
 	catch (std::runtime_error& e)
 	{
-		qWarning() << "WARNING: unable to create toolbar button for Calendars plugin: " << e.what();
+		qWarning() << "Unable to create toolbar button for Calendars plugin: " << e.what();
 	}
 
 	infoPanel->setFont(font);
@@ -432,7 +433,7 @@ void Calendars::draw(StelCore* core)
 }
 
 // Get a pointer to the respective calendar
-Calendar* Calendars::getCal(QString name)
+Calendar* Calendars::getCal(const QString &name)
 {
 	return calendars.value(name, nullptr);
 }

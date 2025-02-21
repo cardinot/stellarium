@@ -340,15 +340,50 @@ QStringList StelMainScriptAPI::getAllTimezoneNames()
 	return StelApp::getInstance().getLocationMgr().getAllTimezoneNames();
 }
 
+// Coordinate conversion: geographic (WGS84)-->UTM
+QList<double> StelMainScriptAPI::geo2utm(const double longitude, const double latitude, const int zone)
+{
+	QPair<Vec3d, Vec2d> utm=StelLocationMgr::geo2utm(longitude, latitude, zone);
+	Vec3d pos=utm.first;
+	Vec2d ang=utm.second;
+	return QList<double>({pos[0], pos[1], pos[2], ang[0]*M_180_PI, ang[1]});
+}
+// Coordinate conversion: UTM->geographic (WGS84)
+QList<double> StelMainScriptAPI::utm2geo(const double easting, const double northing, const int zone, const bool north)
+{
+	QPair<Vec3d, Vec2d> geo=StelLocationMgr::utm2geo(easting, northing, zone, north);
+	Vec3d pos=geo.first;
+	Vec2d ang=geo.second;
+	return QList<double>({pos[0], pos[1], pos[2], ang[0]*M_180_PI, ang[1]});
+}
+
 void StelMainScriptAPI::screenshot(const QString& prefix, bool invert, const QString& dir, const bool overwrite, const QString &format)
 {
-	bool oldInvertSetting = StelMainView::getInstance().getFlagInvertScreenShotColors();
-	QString oldFormat=StelMainView::getInstance().getScreenshotFormat();
-	StelMainView::getInstance().setFlagInvertScreenShotColors(invert);
-	if ((format.length()>0) && (format.length()<=4))
+	QString realDir("");
+	if ((!dir.isEmpty()) && (!StelApp::getInstance().getScriptMgr().getFlagAllowExternalScreenshotDir()))
+	{
+		qWarning() << "SCRIPT CONFIGURATION ISSUE: the script wants to store a screenshot" << prefix << "." << format << "to an external directory " << dir;
+		qWarning() << "  To enable this, check the settings in the script console";
+		qWarning() << "  or set entry scripts/flag_allow_screenshots_dir=true in config.ini.";
+	}
+	else
+		realDir=dir;
+
+
+	const bool oldInvertSetting = StelMainView::getInstance().getFlagInvertScreenShotColors();
+	const QString oldFormat=StelMainView::getInstance().getScreenshotFormat();
+	if ((!format.isEmpty()) && (format.length()<=4))
 		StelMainView::getInstance().setScreenshotFormat(format);
+	// Check requested against set image format.
+	if ((!format.isEmpty()) && (StelMainView::getInstance().getScreenshotFormat() != format))
+	{
+		qWarning() << "Screenshot format" << format << "not supported. Not saving screenshot.";
+		return;
+	}
+
+	StelMainView::getInstance().setFlagInvertScreenShotColors(invert);
 	StelMainView::getInstance().setFlagOverwriteScreenShots(overwrite);
-	StelMainView::getInstance().saveScreenShot(prefix, dir, overwrite);
+	StelMainView::getInstance().saveScreenShot(prefix, realDir, overwrite);
 	StelMainView::getInstance().setFlagInvertScreenShotColors(oldInvertSetting);
 	StelMainView::getInstance().setScreenshotFormat(oldFormat);
 }
@@ -356,6 +391,11 @@ void StelMainScriptAPI::screenshot(const QString& prefix, bool invert, const QSt
 void StelMainScriptAPI::setGuiVisible(bool b)
 {
 	StelApp::getInstance().getGui()->setVisible(b);
+}
+
+void StelMainScriptAPI::setSelectedObjectMarkerVisible(bool b)
+{
+	GETSTELMODULE(StelObjectMgr)->setFlagSelectedObjectPointer(b);
 }
 
 void StelMainScriptAPI::setGuiStyle(const QString& cssStyle)
@@ -1047,6 +1087,82 @@ void StelMainScriptAPI::addToSelectedObjectInfoString(const QString &str, bool r
 	}
 }
 
+QVariantMap StelMainScriptAPI::getRTS(const QString &objectName, const double altitude)
+{
+	static const QMap<double, QString> statusCodeMap={
+		{0, "OK"},
+		{100., "circumpolar"},
+		{-100., "never rises"},
+		{20., "no transit this day"},
+		{30., "no rise this day"},
+		{40., "no set this day"},
+		{-1000., "invalid result"}
+	};
+	StelCore* core = StelApp::getInstance().getCore();
+
+	QVariantMap map = {{"name"       ,  objectName},
+			   {"status-code",  -1001.},
+			   {"status"     ,  "no object"}};
+
+	StelObjectP obj = GETSTELMODULE(StelObjectMgr)->searchByName(objectName);
+	// backward compatible layer: probably we have Solar system body...
+	if (obj.isNull())
+		obj = qSharedPointerCast<StelObject>(GETSTELMODULE(SolarSystem)->searchByEnglishName(objectName));
+
+	if (obj.isNull())
+		return map;
+
+	const Vec4d rts=obj->getRTSTime(core, altitude);
+	map.insert("status-code", rts[3]);
+	map.insert("status", statusCodeMap.value(rts[3], "unknown status"));
+
+	// following StelObject::getInfoMap(const StelCore *core) const
+	if (rts[3]>-1000.)
+	{
+		const double utcShift = core->getUTCOffset(core->getJD()) / 24.; // Fix DST shift...
+		int hr, min, sec;
+		StelUtils::getTimeFromJulianDay(rts[1]+utcShift, &hr, &min, &sec);
+		double hours=hr+static_cast<double>(min)/60. + static_cast<double>(sec)/3600.;
+
+		int year, month, day, currentDay;
+		StelUtils::getDateFromJulianDay(core->getJD()+utcShift, &year, &month, &currentDay);
+		StelUtils::getDateFromJulianDay(rts[1]+utcShift, &year, &month, &day);
+		if (rts[3]==20 || day != currentDay) // no transit
+		{
+			map.insert("transit", "---");
+		}
+		else {
+			map.insert("transit", StelUtils::hoursToHmsStr(hours, true));
+			map.insert("transit-dhr", hours);
+		}
+
+		StelUtils::getDateFromJulianDay(rts[0]+utcShift, &year, &month, &day);
+		if (rts[3]==30 || rts[3]<0 || rts[3]>50 || day != currentDay) // no rise
+		{
+			map.insert("rise", "---");
+		}
+		else {
+			StelUtils::getTimeFromJulianDay(rts[0]+utcShift, &hr, &min, &sec);
+			hours=hr+static_cast<double>(min)/60. + static_cast<double>(sec)/3600.;
+			map.insert("rise", StelUtils::hoursToHmsStr(hours, true));
+			map.insert("rise-dhr", hours);
+		}
+
+		StelUtils::getDateFromJulianDay(rts[2]+utcShift, &year, &month, &day);
+		if (rts[3]==40 || rts[3]<0 || rts[3]>50 || day != currentDay) // no set
+		{
+			map.insert("set", "---");
+		}
+		else {
+			StelUtils::getTimeFromJulianDay(rts[2]+utcShift, &hr, &min, &sec);
+			hours=hr+static_cast<double>(min)/60. + static_cast<double>(sec)/3600.;
+			map.insert("set", StelUtils::hoursToHmsStr(hours, true));
+			map.insert("set-dhr", hours);
+		}
+	}
+	return map;
+}
+
 void StelMainScriptAPI::setStelProperty(const QString& propertyName, QVariant propertyValue)
 {
 	StelApp::getInstance().getStelPropertyManager()->setStelPropertyValue(propertyName, propertyValue);
@@ -1069,7 +1185,7 @@ void StelMainScriptAPI::clear(const QString& state)
 	const int stateInt = stateMap.value(state.toLower(), 0);
 	if (stateInt == 0)
 	{
-		qWarning() << "WARNING clear(" << state << ") - state not known";
+		qWarning() << "State for command clear(" << state << ") not known";
 	}
 	else
 	{
@@ -1434,11 +1550,7 @@ QVariantMap StelMainScriptAPI::getScreenXYFromAltAzi(const QString &alt, const Q
 
 QString StelMainScriptAPI::getEnv(const QString &var)
 {
-#if QT_VERSION >= QT_VERSION_CHECK(5, 10, 0)
 	return qEnvironmentVariable(var.toLocal8Bit().constData());
-#else
-	return QString::fromLocal8Bit(qgetenv(var.toLocal8Bit().constData()));
-#endif
 }
 
 // return whether a particular module has been loaded. Mostly useful to check whether a module available as plugin is active.
@@ -1459,6 +1571,10 @@ QString StelMainScriptAPI::getPlatformName(void)
 		os = "NetBSD";
 	else if (os.contains("OpenBSD", Qt::CaseInsensitive))
 		os = "OpenBSD";
+	else if (os.contains("Haiku", Qt::CaseInsensitive))
+		os = "Haiku";
+	else if (os.contains("SunOS", Qt::CaseInsensitive))
+		os = "Solaris";
 	else if (os.contains("linux", Qt::CaseInsensitive) || QSysInfo::kernelType().contains("linux", Qt::CaseInsensitive))
 		os = "Linux";
 	else if (os.contains("windows", Qt::CaseInsensitive) || os.contains("winrt", Qt::CaseInsensitive))
@@ -1505,4 +1621,11 @@ void StelMainScriptAPI::setDisplayGamma(double gamma)
 double StelMainScriptAPI::getDisplayGamma()
 {
     return static_cast<double>(StelApp::getInstance().getCore()->getToneReproducer()->getDisplayGamma());
+}
+
+Vec2d StelMainScriptAPI::setWindowSize(int width, int height)
+{
+	StelMainView &mainView=StelMainView::getInstance();
+	QRectF rect=mainView.setWindowSize(width, height);
+	return Vec2d(rect.width(), rect.height());
 }

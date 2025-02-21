@@ -46,7 +46,7 @@ class StelMainScriptAPI : public QObject
 
 public:
 	StelMainScriptAPI(QObject *parent = Q_NULLPTR);
-	~StelMainScriptAPI() Q_DECL_OVERRIDE;
+	~StelMainScriptAPI() override;
 
 #ifdef ENABLE_SCRIPT_QML
 	void setEngine(QJSEngine *eng){m_engine=eng;}
@@ -221,7 +221,9 @@ public slots:
 	//! Fetch a map with data about an object's position, magnitude and so on
 	//! @param name is the English name of the object for which data will be
 	//! returned.
-	//! @return a map of object data.  Keys:
+	//! @return a map of object data.
+	//!
+	//! Keys:
 	//! - above-horizon : true, if celestial body is above horizon
 	//! - altitude : apparent altitude angle in decimal degrees
 	//! - azimuth : apparent azimuth angle in decimal degrees
@@ -252,13 +254,14 @@ public slots:
 	//! - size-deg : angular size in decimal degrees (formatted string)
 	//! - size-dms : angular size in DMS format
 	//! - localized-name : localized name	
+	//!
 	//! The returned map can contain other information. For example, Solar System objects add:
-	//! - distance : distance to object in AU (for Solar system objects only!)
 	//! - phase : phase (illuminated fraction, 0..1) of object (for Solar system objects only!)
 	//! - illumination : phase of object in percent (0..100) (for Solar system objects only!)
 	//! - phase-angle : phase angle of object in radians (for Solar system objects only!)
 	//! - phase-angle-dms : phase angle of object in DMS (for Solar system objects only!)
 	//! - phase-angle-deg : phase angle of object in decimal degrees (for Solar system objects only!)
+	//! - is-waning : whether phase angle is increasing, signifying the waning phase (for Solar system objects only!)
 	//! - elongation : elongation of object in radians (for Solar system objects only!)
 	//! - elongation-dms : elongation of object in DMS (for Solar system objects only!)
 	//! - elongation-deg : elongation of object in decimal degrees (for Solar system objects only!)
@@ -272,11 +275,21 @@ public slots:
 	//! - scale: scale factor for Solar system bodies (for Solar system objects only!)
 	//! - eclipse-obscuration: value of obscuration for solar eclipse (for Sun only!)
 	//! - eclipse-magnitude: value of magnitude for solar eclipse (for Sun only!)
+	//! - eclipse-crescent-angle (degrees; for Sun only!)
+	//! - heliocentric-distance: distance to object from the Sun in AU (for Solar system objects, except the Sun)
+	//! - heliocentric-distance-km: distance to object from the Sun in kilometers (for Solar system objects, except the Sun)
+	//! - distance: distance to object in AU (for Solar system objects only!)
+	//! - distance-km: distance to object in kilometers (for Solar system objects only!)
+	//! - phase-name: name of phase (on Earth for Moon only!)
+	//! - age: the age of the Moon in days. This is currently "elongation angle age" only, not time since last conjunction! (on Earth for Moon only!)
+	//! - penumbral-eclipse-magnitude: the magnitude of penumbral lunar eclipse (on Earth for Moon only!)
+	//! - umbral-eclipse-magnitude: the magnitude of umbral lunar eclipse (on Earth for Moon only!)
+	//!
 	//! Other StelObject derivates, also those defined in plugins, may add more,
 	//! these fields are documented in the respective classes, or simply try what you get:
 	//! You can print a complete set of entries into output with the following commands:
 	//! @code
-	//! map=core.getSelectedObjectInfo();
+	//! map=core.getObjectInfo("Name_of_object");
 	//! core.output(core.mapToString(map));
 	//! @endcode
 	static QVariantMap getObjectInfo(const QString& name);
@@ -290,6 +303,38 @@ public slots:
 	//! Note that while most objects keep this information after unselection and reselection,
 	//! stars will start with no extra information when they become selected again.
 	static void addToSelectedObjectInfoString(const QString &str, bool replace=false);
+
+	//! Retrieve information about rise, transit and setting time above a given @param altitude for @param objectName.
+	//! @return a map with various entries in local time.
+	//! The times are on the current calendar day, not the "nearest" events,
+	//! therefore esp. the Moon may return "skipping codes" 20/30/40.
+	//! The map keys are
+	//! - rise-dhr     : rise, decimal hour, zone time
+	//! - transit-dhr  : transit, decimal hour, zone time
+	//! - set-dhr      : set, decimal hour, zone time
+	//! - rise         : string, "HHhMMm" format
+	//! - transit      : string, "HHhMMm" format
+	//! - set          : string, "HHhMMm" format
+	//! - altitude     : decimal degrees, just same as @param altitude, for reference
+	//! - name         : english name of the object, for reference
+	//! - status-code:
+	//!       *     0. normal result, 3 valid times.
+	//! 	  *  +100. for circumpolar objects. Rise and set give lower culmination times.
+	//!       *  -100. for objects never rising. Rise and set give transit times.
+	//!       * -1000. is used as "invalid" value. The result should then not be used. If unexpected, consider reporting a bug.
+	//!       *   +20. (Planet objects only) no transit time on current date.
+	//!       *   +30. (Planet objects only) no rise time on current date.
+	//!       *   +40. (Planet objects only) no set time on current date.
+	//! - status: An english string explaining the status code
+	//! If altitude==0, this is just rise/transit/set also included in getObjectInfo(objectName).
+	//! This function however can be used to retrieve twilight times like
+	//! @code
+	//! civilTwilightMap=core.getRTS("Sun", -6.);
+	//! nautTwilightMap=core.getRTS("Sun", -12.);
+	//! astroTwilightMap=core.getRTS("Sun", -18.);
+	//! core.output("Twilight " + astroTwilightMap["rise"] + "/" + nautTwilightMap["rise"] + "/" + civilTwilightMap["rise"]);
+	//! @endcode
+	static QVariantMap getRTS(const QString &objectName, const double altitude=0.);
 
 	//! Set value for some StelProperty.
 	//! @note This method may be very helpful for change the values in the plugins to avoid crashes when some plugin is not loaded.
@@ -445,6 +490,21 @@ public slots:
 	//! Return an array of all timezone names valid for setTimezone(tzName)
 	static QStringList getAllTimezoneNames();
 
+	//! Coordinate conversion: geographic (WGS84)-->UTM
+	//! @arg longitude geographic longitude from Greenwich, degrees
+	//! @arg latitude geographic latitude from equator, degrees
+	//! @arg zone UTM zone [1...60]. If 0, compute best-fit zone.
+	//! @return {{E[m], N[m], zone, gamma[deg], k}}
+	//! The returned zone contains the input or, if input was 0 (or missing), the most appropriate zone. North or South is not returned but is trivially fround from latitude.
+	static QList<double> geo2utm(const double longitude, const double latitude, const int zone=0);
+	//! Coordinate conversion: UTM->geographic (WGS84)
+	//! @arg easting (metres). False Easting of Zone meridian = 500000
+	//! @arg northing (metres). For southern latitudes, equator = 10000000
+	//! @arg zone UTM zone (longitudinal) [1...60].
+	//! @arg north true for N, false for S latitude zones.
+	//! @return {{longitude[deg], latitude[deg], refLong[deg], gamma[deg], k}}
+	static QList<double> utm2geo(const double easting, const double northing, const int zone, const bool north);
+
 	//! Save a screenshot.
 	//! @param prefix the prefix for the file name to use
 	//! @param dir the path of the directory to save the screenshot in.  If
@@ -452,12 +512,17 @@ public slots:
 	//! @param invert whether colors have to be inverted in the output image
 	//! @param overwrite true to use exactly the prefix as filename (plus .png), and overwrite any existing file.
 	//! @param format File format. One of png|bmp|jpg|jpeg|tif|tiff|webm|pbm|pgm|ppm|xbm|xpm|ico. Use current format if left empty or invalid.
+	//!        Format tiff stores uncompressed, tif uses LZW lossless compression. Format jpeg is less compressed than jpg.
 	static void screenshot(const QString& prefix, bool invert=false, const QString& dir="", const bool overwrite=false, const QString& format="");
 
 	//! Show or hide the GUI (toolbars).  Note this only applies to GUI plugins which
 	//! provide the public slot "setGuiVisible(bool)".
 	//! @param b if true, show the GUI, if false, hide the GUI.
 	static void setGuiVisible(bool b);
+
+	//! Show or hide the selection pointers/markers
+	//! @param b if true, show the pointer/marker around selected objects, if false, hide the pointer/marker.
+	static void setSelectedObjectMarkerVisible(bool b);
 
 	//! Use a custom CSS for the GUI. This is a very advanced feature, designing CSS is an art.
 	//! To use properly, place a private copy of normalStyle.css into your user data directory and edit style, but leave structure as-is.
@@ -521,6 +586,10 @@ public slots:
 	//! - ProjectionMiller
 	void setProjectionMode(const QString& id);
 
+	//! Set size of current window. This will never exceed the current screen dimensions.
+	//! @return the actually gained size(width, height).
+	static Vec2d setWindowSize(int width, int height);
+
 	//! Get the status of the disk viewport
 	//! @return true if the disk view port is currently enabled
 	static bool getDiskViewport();
@@ -545,7 +614,7 @@ public slots:
 
 	//! Find out the current sky culture
 	//! @return the ID of the current sky culture (i.e. the name of the directory in
-	//! which the curret sky cultures files are found, e.g. "western")
+	//! which the current sky cultures files are found, e.g. "western")
 	static QString getSkyCulture();
 
 	//! Set the current sky culture
@@ -925,6 +994,8 @@ public slots:
 	//! - Linux
 	//! - Windows
 	//! - macOS
+	//! - Haiku
+	//! - Solaris
 	//! - Unknown
 	static QString getPlatformName(void);
 

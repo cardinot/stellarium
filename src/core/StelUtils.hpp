@@ -46,6 +46,10 @@
 #define SUN_RADIUS 696000.
 // Equatorial radius of the Moon in km
 #define MOON_RADIUS 1738.
+// 1 mas to 1 radian, is M_PI / (3600000. * 180.)
+#define MAS2RAD 4.8481368110953594e-9
+// julian year in seconds that is 365.25 * 86400.
+#define JYEAR_SECONDS 31557600.0
 
 // Add a few frequently used extra math-type literals
 #ifndef M_PI_180
@@ -79,6 +83,19 @@
 
 #define stelpow10f(x) std::exp((x) * 2.3025850930f)
 
+#define L1S(x) QLatin1String(x)
+
+// Allow parallel evaluation of std::transform_reduce(std::execution::par, ...) or
+// std::sort(std::execution::par, ...) where known. Not all compilers know it.
+// Use std::transform_reduce(STD_EXECUTION_PAR_COMMA ...) for the general case.
+#if STD_EXECUTION_KNOWN
+# define STD_EXECUTION_PAR_COMMA std::execution::par,
+#else
+# define STD_EXECUTION_PAR_COMMA
+#endif
+
+constexpr double DEFAULT_FONT_SIZE = 13;
+
 //! @namespace StelUtils contains general purpose utility functions.
 namespace StelUtils
 {
@@ -97,11 +114,20 @@ namespace StelUtils
 	//! Return the name and the version of operating system, i.e. "macOS 12.5"
 	QString getOperatingSystemInfo();
 
-	//! Return the name and the version of compiler, which was used for building the planetarium, i.e. "GCC 9.3.0"
-	QString getCompilerInfo();
-
 	//! Return the user agent name, i.e. "Stellarium/0.15.0 (Linux)"
 	QString getUserAgentString();
+
+	/*! \brief Get a long integer from a JSON value
+	 *
+	 *  QJsonValue stores JSON numbers as double-precision floating-point values. This means
+	 *  that numbers greater than 2^53-1 will be rounded, which is unacceptable for e.g. ids
+	 *  like those of the Gaia catalog.
+	 *  This function supports, in addition to normal JSON numbers, also representations of
+	 *  numbers by JSON strings. If the value passed is a JSON string, it will be parsed to a
+	 *  number. If it's a JSON number less than 2^53, it will be returned as is. Otherwise it
+	 *  will return 0, as QJsonValue's getters would in case of a type mismatch.
+	 */
+	qint64 getLongLong(const class QJsonValue& v);
 
 	inline const QString getEndLineChar() {
 		#ifdef Q_OS_WIN
@@ -262,8 +288,7 @@ namespace StelUtils
 	//! @param lat double* to store latitude in radian
 	//! @param v the input 3D vector
 	inline void rectToSphe(double *lng, double *lat, const Vec3d& v){
-		double r = v.norm();
-		*lat = asin(v[2]/r);
+		*lat = atan2(v[2], sqrt(v[0]*v[0] + v[1]*v[1]));
 		*lng = atan2(v[1],v[0]);
 	}
 
@@ -272,9 +297,8 @@ namespace StelUtils
 	//! @param lat float* to store latitude in radian
 	//! @param v the input 3D vector
 	inline void rectToSphe(float *lng, float *lat, const Vec3d& v){
-		double r = v.norm();
-		*lat = static_cast<float>(asin(v[2]/r));
 		*lng = static_cast<float>(atan2(v[1],v[0]));
+		*lat = atan2(v[2], sqrt(v[0]*v[0] + v[1]*v[1]));
 	}
 
 
@@ -283,8 +307,7 @@ namespace StelUtils
 	//! @param lat float* to store latitude in radian
 	//! @param v the input 3D vector
 	inline void rectToSphe(float *lng, float *lat, const Vec3f& v){
-		float r = v.norm();
-		*lat = asinf(v[2]/r);
+		*lat = atan2(v[2], sqrt(v[0]*v[0] + v[1]*v[1]));
 		*lng = atan2f(v[1],v[0]);
 	}
 
@@ -293,8 +316,7 @@ namespace StelUtils
 	//! @param lat double* to store latitude in radian
 	//! @param v the input 3D vector
 	inline void rectToSphe(double *lng, double *lat, const Vec3f &v){
-		double r = static_cast<double>(v.norm());
-		*lat = asin(static_cast<double>(v[2])/r);
+		*lat = atan2(static_cast<double>(v[2]), sqrt(static_cast<double>(v[0]*v[0] + v[1]*v[1])));
 		*lng = atan2(static_cast<double>(v[1]),static_cast<double>(v[0]));
 	}
 
@@ -315,7 +337,7 @@ namespace StelUtils
 	//! @param v the input 3D vector
 	inline void rectToSphe(double *lng, double *lat, double *r, const Vec3d& v){
 		*r = v.norm();
-		*lat = asin(v[2] / *r);
+		*lat = atan2(v[2], sqrt(v[0]*v[0] + v[1]*v[1]));
 		*lng = atan2(v[1],v[0]);
 	}
 
@@ -365,8 +387,11 @@ namespace StelUtils
 		return (value & -value) == value;
 	}
 
-	//! Return the first power of two bigger than the given value.
+	//! Return the smallest power of two greater than or equal to the given value.
 	int getBiggerPowerOfTwo(int value);
+
+	//! Return the largest power of two smaller than or equal to the given value
+	int getSmallerPowerOfTwo(const int value);
 
 	//! Return the inverse sinus hyperbolic of z.
 	inline double asinh(const double z){
@@ -484,18 +509,29 @@ namespace StelUtils
 	//! Return a day number of week for date
 	//! @return number of day: 0 - sunday, 1 - monday,..
 	int getDayOfWeek(int year, int month, int day);
-	inline int getDayOfWeek(double JD){ double d= fmodpos(JD+1.5, 7);
+	inline int getDayOfWeek(double JD)
+	{
+		double d= fmodpos(JD+1.5, 7);
 		return std::lround(floor(d));
 	}
+
+	//! Format the discovery date
+	//! @return QString representing the formatted date
+	QString localeDiscoveryDateString(const QString& discovery);
 
 	//! Get the current Julian Date from system time.
 	//! @return the current Julian Date
 	double getJDFromSystem();
 
 	//! Get the Julian Day Number (JD) from Besselian epoch.
-	//! @param epoch Besselian epoch, expressed as year
+	//! @param epoch Besselian epoch, expressed as year with decimal fraction
 	//! @return Julian Day number (JD) for B<Year>
 	double getJDFromBesselianEpoch(const double epoch);
+
+	//! Get the Julian Day Number (JD) from Julian epoch.
+	//! @param epoch Julian epoch, expressed as year with decimal fraction
+	//! @return Julian Day number (JD) for J<Year>
+	double getJDFromJulianEpoch(const double epoch);
 
 	//! Convert a time of day to the fraction of a Julian Day.
 	//! Note that a Julian Day starts at 12:00, not 0:00, and
@@ -575,14 +611,23 @@ namespace StelUtils
 	//double calculateSiderealPeriod(const double SemiMajorAxis);  MOVED TO Orbit.h
 
 	//! Convert decimal hours to hours, minutes, seconds
-	QString hoursToHmsStr(const double hours, const bool lowprecision = false);
-	QString hoursToHmsStr(const float hours, const bool lowprecision = false);
+	//! Format for  @param colonFormat FALSE           TRUE
+	//! @param minutesOnly FALSE     "HhMMmSS.Ss"    "HHhMMm"
+	//! @param minutesOnly TRUE      "H:MM:SS.S"     "HH:MM"
+	QString hoursToHmsStr(const double hours, const bool minutesOnly = false, const bool colonFormat=false);
+	QString hoursToHmsStr(const float hours, const bool minutesOnly = false, const bool colonFormat=false);
+
+	//! Convert JD to hours and minutes
+	QString getHoursMinutesFromJulianDay(const double julianDay);
 
 	//! Convert a hms formatted string to decimal hours
 	double hmsStrToHours(const QString& s);
 
 	//! Convert days (float) to a time string
 	QString daysFloatToDHMS(float days);
+
+	//! The method to splitting the text by substrings by some limit of string length
+	QString wrapText(const QString& s, const int limit = 52);
 
 	//! Get Delta-T estimation for a given date.
 	//! This is just an "empty" correction function, returning 0.
@@ -851,7 +896,7 @@ namespace StelUtils
 	double getDeltaTByIslamSadiqQureshi(const double jDay);
 
 	//! Get Delta-T estimation for a given date.
-	//! Implementation of polinomial approximation of time period 1620-2013 for DeltaT by M. Khalid, Mariam Sultana and Faheem Zaidi (2014).
+	//! Implementation of polynomial approximation of time period 1620-2013 for DeltaT by M. Khalid, Mariam Sultana and Faheem Zaidi (2014).
 	//! Source: Delta T: Polynomial Approximation of Time Period 1620-2013
 	//! Journal of Astrophysics, Vol. 2014, Article ID 480964
 	//! https://doi.org/10.1155/2014/480964

@@ -29,6 +29,7 @@
 
 class StelObject;
 class StelToneReproducer;
+class StelSkyCulture;
 class StelProjector;
 class StelPainter;
 class QSettings;
@@ -36,7 +37,7 @@ class QSettings;
 class ZoneArray;
 struct HipIndexStruct;
 
-static const int RCMAG_TABLE_SIZE = 4096;
+static const int RCMAG_TABLE_SIZE = 512;
 
 typedef struct
 {
@@ -69,7 +70,7 @@ typedef struct
 } crossid;
 
 typedef QMap<StelObjectP, float> StelACStarData;
-typedef QPair<float, float> PMData;
+typedef uint64_t StarId;
 
 //! @class StarMgr
 //! Stores the star catalogue data.
@@ -137,7 +138,7 @@ class StarMgr : public StelObjectModule
 
 public:
 	StarMgr(void);
-	~StarMgr(void) Q_DECL_OVERRIDE;
+	~StarMgr(void) override;
 
 	///////////////////////////////////////////////////////////////////////////
 	// Methods defined in the StelModule class
@@ -148,64 +149,64 @@ public:
 	//! - Loads the star font (for labels on named stars)
 	//! - Loads the texture of the star selection indicator
 	//! - Sets various display flags from the ini parser object
-	virtual void init() Q_DECL_OVERRIDE;
+	void init() override;
 
 	//! Draw the stars and the star selection indicator if necessary.
-	virtual void draw(StelCore* core) Q_DECL_OVERRIDE;
+	void draw(StelCore* core) override;
 
 	//! Update any time-dependent features.
 	//! Includes fading in and out stars and labels when they are turned on and off.
-	virtual void update(double deltaTime) Q_DECL_OVERRIDE {labelsFader.update(static_cast<int>(deltaTime*1000)); starsFader.update(static_cast<int>(deltaTime*1000));}
+	void update(double deltaTime) override {labelsFader.update(static_cast<int>(deltaTime*1000)); starsFader.update(static_cast<int>(deltaTime*1000));}
 
 	//! Used to determine the order in which the various StelModules are drawn.
-	virtual double getCallOrder(StelModuleActionName actionName) const Q_DECL_OVERRIDE;
+	double getCallOrder(StelModuleActionName actionName) const override;
 
 	///////////////////////////////////////////////////////////////////////////
 	// Methods defined in StelObjectModule class
 	//! Return a list containing the stars located inside the limFov circle around position v
-	virtual QList<StelObjectP > searchAround(const Vec3d& v, double limitFov, const StelCore* core) const Q_DECL_OVERRIDE;
+	QList<StelObjectP > searchAround(const Vec3d& v, double limitFov, const StelCore* core) const override;
 
 	//! Return the matching Stars object's pointer if exists or Q_NULLPTR
 	//! @param nameI18n The case in-sensitive localized star common name or HIP/HP, SAO, HD, HR, GCVS or WDS number
 	//! catalog name (format can be HP1234 or HP 1234 or HIP 1234) or sci name
-	virtual StelObjectP searchByNameI18n(const QString& nameI18n) const Q_DECL_OVERRIDE;
+	StelObjectP searchByNameI18n(const QString& nameI18n) const override;
 
 	//! Return the matching star if exists or Q_NULLPTR
 	//! @param name The case in-sensitive english star name
-	virtual StelObjectP searchByName(const QString& name) const Q_DECL_OVERRIDE;
+	StelObjectP searchByName(const QString& name) const override;
 
 	//! Same as searchByName(id);
-	virtual StelObjectP searchByID(const QString &id) const Q_DECL_OVERRIDE;
+	StelObjectP searchByID(const QString &id) const override;
 
 	//! Find and return the list of at most maxNbItem objects auto-completing the passed object English name.
 	//! @param objPrefix the case insensitive first letters of the searched object
 	//! @param maxNbItem the maximum number of returned object names
 	//! @param useStartOfWords the autofill mode for returned objects names
 	//! @return a list of matching object name by order of relevance, or an empty list if nothing match
-	virtual QStringList listMatchingObjects(const QString& objPrefix, int maxNbItem=5, bool useStartOfWords=false) const Q_DECL_OVERRIDE;
+	QStringList listMatchingObjects(const QString& objPrefix, int maxNbItem=5, bool useStartOfWords=false) const override;
 	//! @note Loading stars with the common names only.
-	virtual QStringList listAllObjects(bool inEnglish) const Q_DECL_OVERRIDE;
-	virtual QStringList listAllObjectsByType(const QString& objType, bool inEnglish) const Q_DECL_OVERRIDE;
-	virtual QString getName() const Q_DECL_OVERRIDE { return "Stars"; }
-	virtual QString getStelObjectType() const Q_DECL_OVERRIDE;
+	QStringList listAllObjects(bool inEnglish) const override;
+	QStringList listAllObjectsByType(const QString& objType, bool inEnglish) const override;
+	QString getName() const override { return "Stars"; }
+	QString getStelObjectType() const override;
 
 public slots:
 	///////////////////////////////////////////////////////////////////////////
 	// Methods callable from script and GUI
 	//! Set display flag for Stars.
-	void setFlagStars(bool b) {starsFader=b; emit starsDisplayedChanged(b);}
+	void setFlagStars(bool b);
 	//! Get display flag for Stars
 	bool getFlagStars(void) const {return starsFader==true;}
 
 	//! Set display flag for Star names (labels).
-	void setFlagLabels(bool b) {labelsFader=b; emit starLabelsDisplayedChanged(b);}
+	void setFlagLabels(bool b);
 	//! Get display flag for Star names (labels).
 	bool getFlagLabels(void) const {return labelsFader==true;}
 
 	//! Set the amount of star labels. The real amount is also proportional with FOV.
 	//! The limit is set in function of the stars magnitude
 	//! @param a the amount between 0 and 10. 0 is no labels, 10 is maximum of labels
-	void setLabelsAmount(double a) {if(!qFuzzyCompare(a,labelsAmount)){ labelsAmount=a; emit labelsAmountChanged(a);}}
+	void setLabelsAmount(double a);
 	//! Get the amount of star labels. The real amount is also proportional with FOV.
 	//! @return the amount between 0 and 10. 0 is no labels, 10 is maximum of labels
 	double getLabelsAmount(void) const {return labelsAmount;}
@@ -218,27 +219,27 @@ public slots:
 	static bool getFlagSciNames(void) {return flagSciNames;}
 
 	//! Set flag for usage designations of stars for their labels instead common names.
-	void setDesignationUsage(const bool flag) { if(flagDesignations!=flag){ flagDesignations=flag; emit designationUsageChanged(flag);}}
+	void setDesignationUsage(const bool flag);
 	//! Get flag for usage designations of stars for their labels instead common names.
 	static bool getDesignationUsage(void) {return flagDesignations; }
 
 	//! Set flag for usage traditional designations of double stars.
-	void setFlagDblStarsDesignation(const bool flag) { if(flagDblStarsDesignation!=flag){ flagDblStarsDesignation=flag; emit flagDblStarsDesignationChanged(flag);}}
+	void setFlagDblStarsDesignation(const bool flag);
 	//! Get flag for usage traditional designations of double stars.
 	static bool getFlagDblStarsDesignation(void) {return flagDblStarsDesignation; }
 
 	//! Set flag for usage designations of variable stars.
-	void setFlagVarStarsDesignation(const bool flag) { if(flagVarStarsDesignation!=flag){ flagVarStarsDesignation=flag; emit flagVarStarsDesignationChanged(flag);}}
+	void setFlagVarStarsDesignation(const bool flag);
 	//! Get flag for usage designations of variable stars.
 	static bool getFlagVarStarsDesignation(void) {return flagVarStarsDesignation; }
 
 	//! Set flag for usage Hipparcos catalog designations of stars.
-	void setFlagHIPDesignation(const bool flag) { if(flagHIPDesignation!=flag){ flagHIPDesignation=flag; emit flagHIPDesignationChanged(flag);}}
+	void setFlagHIPDesignation(const bool flag);
 	//! Get flag for usage Hipparcos catalog designations of stars.
 	static bool getFlagHIPDesignation(void) {return flagHIPDesignation; }
 
 	//! Show additional star names.
-	void setFlagAdditionalNames(bool flag) { if (flagAdditionalStarNames!=flag){ flagAdditionalStarNames=flag; emit flagAdditionalNamesDisplayedChanged(flag);}}
+	void setFlagAdditionalNames(bool flag);
 	static bool getFlagAdditionalNames(void) { return flagAdditionalStarNames; }
 
 public:
@@ -250,139 +251,142 @@ public:
 	//! one was not found.
 	StelObjectP searchHP(int hip) const;
 
+	//! Search by Gaia source id.
+	//! @param source_id the Gaia source id of the star which is required.
+	//! @return the requested StelObjectP or an empty objecy if the requested
+	//! one was not found.
+	StelObjectP searchGaia(StarId source_id) const;
+
 	//! Get the (translated) common name for a star with a specified
-	//! Hipparcos catalogue number.
-	//! @param hip The Hipparcos number of star
+	//! Hipparcos or Gaia catalogue number.
+	//! @param hip The Hipparcos/Gaia number of star
 	//! @return translated common name of star
-	static QString getCommonName(int hip);
+	static QString getCommonName(StarId hip);
 
 	//! Get the (translated) scientific name for a star with a specified
-	//! Hipparcos catalogue number.
-	//! @param hip The Hipparcos number of star
+	//! Hipparcos or Gaia catalogue number.
+	//! @param hip The Hipparcos/Gaia number of star
 	//! @return translated scientific name of star
-	static QString getSciName(int hip);
+	static QString getSciName(StarId hip);
 
 	//! Get the (translated) scientific extra name for a star with a specified
-	//! Hipparcos catalogue number.
-	//! @param hip The Hipparcos number of star
+	//! Hipparcos or Gaia catalogue number.
+	//! @param hip The Hipparcos/Gaia number of star
 	//! @return translated scientific name of star
-	static QString getSciExtraName(int hip);
+	static QString getSciExtraName(StarId hip);
 
 	//! Get the (translated) scientific name for a variable star with a specified
-	//! Hipparcos catalogue number.
-	//! @param hip The Hipparcos number of star
+	//! Hipparcos or Gaia catalogue number.
+	//! @param hip The Hipparcos/Gaia number of star
 	//! @return translated scientific name of variable star
-	static QString getGcvsName(int hip);
+	static QString getGcvsName(StarId hip);
 
 	//! Get the (translated) scientific name for a double star with a specified
-	//! Hipparcos catalogue number.
-	//! @param hip The Hipparcos number of star
+	//! Hipparcos or Gaia catalogue number.
+	//! @param hip The Hipparcos/Gaia number of star
 	//! @return translated scientific name of double star
-	static QString getWdsName(int hip);
+	static QString getWdsName(StarId hip);
 
 	//! Get the (English) common name for a star with a specified
-	//! Hipparcos catalogue number.
-	//! @param hip The Hipparcos number of star
+	//! Hipparcos or Gaia catalogue number.
+	//! @param hip The Hipparcos/Gaia number of star
 	//! @return common name of star (from skyculture file star_names.fab)
-	static QString getCommonEnglishName(int hip);
+	static QString getCommonEnglishName(StarId hip);
 
 	//! Get the (translated) additional names for a star with a specified
-	//! Hipparcos catalogue number.
-	//! @param hip The Hipparcos number of star
+	//! Hipparcos or Gaia catalogue number.
+	//! @param hip The Hipparcos/Gaia number of star
 	//! @return translated additional names of star
-	static QString getAdditionalNames(int hip);
+	static QString getAdditionalNames(StarId hip);
 
 	//! Get the English additional names for a star with a specified
-	//! Hipparcos catalogue number.
-	//! @param hip The Hipparcos number of star
+	//! Hipparcos or Gaia catalogue number.
+	//! @param hip The Hipparcos/Gaia number of star
 	//! @return additional names of star
-	static QString getAdditionalEnglishNames(int hip);
+	static QString getAdditionalEnglishNames(StarId hip);
 
 	//! Get the cross-identification designations for a star with a specified
-	//! Hipparcos catalogue number.
-	//! @param hip The Hipparcos number of star
+	//! Hipparcos or Gaia catalogue number.
+	//! @param hip The Hipparcos/Gaia number of star
 	//! @return cross-identification data
 	static QString getCrossIdentificationDesignations(QString hip);
 
 	//! Get the type of variability for a variable star with a specified
-	//! Hipparcos catalogue number.
-	//! @param hip The Hipparcos number of star
+	//! Hipparcos or Gaia catalogue number.
+	//! @param hip The Hipparcos/Gaia number of star
 	//! @return type of variability
-	static QString getGcvsVariabilityType(int hip);
+	static QString getGcvsVariabilityType(StarId hip);
 
 	//! Get the magnitude at maximum brightness for a variable star with a specified
-	//! Hipparcos catalogue number.
-	//! @param hip The Hipparcos number of star
+	//! Hipparcos or Gaia catalogue number.
+	//! @param hip The Hipparcos/Gaia number of star
 	//! @return the magnitude at maximum brightness for a variable star
-	static float getGcvsMaxMagnitude(int hip);
+	static float getGcvsMaxMagnitude(StarId hip);
 
 	//! Get the magnitude flag code for a variable star with a specified
-	//! Hipparcos catalogue number.
-	//! @param hip The Hipparcos number of star
+	//! Hipparcos or Gaia catalogue number.
+	//! @param hip The Hipparcos/Gaia number of star
 	//! @return the magnitude flag code for a variable star
-	static int getGcvsMagnitudeFlag(int hip);
+	static int getGcvsMagnitudeFlag(StarId hip);
 
 	//! Get the minimum magnitude or amplitude for a variable star with a specified
-	//! Hipparcos catalogue number.
-	//! @param hip The Hipparcos number of star
+	//! Hipparcos or Gaia catalogue number.
+	//! @param hip The Hipparcos/Gaia number of star
 	//! @param firstMinimumFlag
 	//! @return the minimum magnitude or amplitude for a variable star
-	static float getGcvsMinMagnitude(int hip, bool firstMinimumFlag=true);
+	static float getGcvsMinMagnitude(StarId hip, bool firstMinimumFlag=true);
 
 	//! Get the photometric system for a variable star with a specified
-	//! Hipparcos catalogue number.
-	//! @param hip The Hipparcos number of star
+	//! Hipparcos or Gaia catalogue number.
+	//! @param hip The Hipparcos/Gaia number of star
 	//! @return the photometric system for a variable star
-	static QString getGcvsPhotometricSystem(int hip);
+	static QString getGcvsPhotometricSystem(StarId hip);
 
 	//! Get Epoch for maximum light for a variable star with a specified
-	//! Hipparcos catalogue number.
-	//! @param hip The Hipparcos number of star
+	//! Hipparcos or Gaia catalogue number.
+	//! @param hip The Hipparcos/Gaia number of star
 	//! @return Epoch for maximum light for a variable star
-	static double getGcvsEpoch(int hip);
+	static double getGcvsEpoch(StarId hip);
 
 	//! Get the period for a variable star with a specified
-	//! Hipparcos catalogue number.
-	//! @param hip The Hipparcos number of star
+	//! Hipparcos or Gaia catalogue number.
+	//! @param hip The Hipparcos/Gaia number of star
 	//! @return the period of variable star
-	static double getGcvsPeriod(int hip);
+	static double getGcvsPeriod(StarId hip);
 
 	//! Get the rising time or duration of eclipse for a variable star with a
-	//! specified Hipparcos catalogue number.
-	//! @param hip The Hipparcos number of star
+	//! specified Hipparcos or Gaia catalogue number.
+	//! @param hip The Hipparcos/Gaia number of star
 	//! @return the rising time or duration of eclipse for variable star
-	static int getGcvsMM(int hip);
+	static int getGcvsMM(StarId hip);
+
+	//! Get the spectral type of variable star with a
+	//! specified Hipparcos or Gaia catalogue number.
+	//! @param hip The Hipparcos/Gaia number of star
+	//! @return the spectral type of variable star
+	static QString getGcvsSpectralType(StarId hip);
 
 	//! Get year of last satisfactory observation of double star with a
-	//! Hipparcos catalogue number.
-	//! @param hip The Hipparcos number of star
+	//! Hipparcos or Gaia catalogue number.
+	//! @param hip The Hipparcos/Gaia number of star
 	//! @return year of last satisfactory observation
-	static int getWdsLastObservation(int hip);
+	static int getWdsLastObservation(StarId hip);
 
 	//! Get position angle at date of last satisfactory observation of double star with a
-	//! Hipparcos catalogue number.
-	//! @param hip The Hipparcos number of star
+	//! Hipparcos or Gaia catalogue number.
+	//! @param hip The Hipparcos/Gaia number of star
 	//! @return position angle in degrees
-	static float getWdsLastPositionAngle(int hip);
+	static float getWdsLastPositionAngle(StarId hip);
 
 	//! Get separation angle at date of last satisfactory observation of double star with a
-	//! Hipparcos catalogue number.
-	//! @param hip The Hipparcos number of star
+	//! Hipparcos or Gaia catalogue number.
+	//! @param hip The Hipparcos/Gaia number of star
 	//! @return separation in arcseconds
-	static float getWdsLastSeparation(int hip);
-
-	//! Get the parallax error for star with a Hipparcos catalogue number.
-	//! @param hip The Hipparcos number of star
-	//! @return the parallax error (mas)
-	static float getPlxError(int hip);
-
-	//! Get the proper motion data for star with a Hipparcos catalogue number.
-	//! @param hip The Hipparcos number of star
-	//! @return the proper motion (mas/yr for RA and Dec)
-	static PMData getProperMotion(int hip);
+	static float getWdsLastSeparation(StarId hip);
 
 	static QString convertToSpectralType(int index);
 	static QString convertToComponentIds(int index);
+	static QString convertToOjectTypes(int index);
 
 	QVariantList getCatalogsDescription() const {return catalogsDescription;}
 
@@ -407,8 +411,7 @@ private slots:
 
 	//! Called when the sky culture is updated.
 	//! Loads common and scientific names of stars for a given sky culture.
-	//! @param skyCultureDir the name of the directory containing the sky culture to use.
-	void updateSkyCulture(const QString& skyCultureDir);
+	void updateSkyCulture(const StelSkyCulture& skyCulture);
 
 	//! increase artificial cutoff magnitude slightly (can be linked to an action/hotkey)
 	void increaseStarsMagnitudeLimit();
@@ -430,11 +433,22 @@ private:
 
 	void copyDefaultConfigFile();
 
+	struct CommonNames
+	{
+		QHash<int, QString> byHIP;
+		QMap<QString, int> hipByName;
+	};
 	//! Loads common names for stars from a file.
 	//! Called when the SkyCulture is updated.
 	//! @param the path to a file containing the common names for bright stars.
 	//! @note Stellarium doesn't support sky cultures made prior version 0.10.6 now!
-	int loadCommonNames(const QString& commonNameFile);
+	CommonNames loadCommonNames(const QString& commonNameFile) const;
+
+	//! Load culture-specific names for stars from JSON data
+	void loadCultureSpecificNames(const QJsonObject& data, const QMap<QString, int>& commonNamesIndexToSearchWhileLoading);
+	void loadCultureSpecificNameForHIP(const QJsonArray& data, int HIP);
+	void loadCultureSpecificNameForNamedObject(const QJsonArray& data, const QString& commonName,
+	                                           const QMap<QString, int>& commonNamesIndexToSearchWhileLoading);
 
 	//! Loads scientific names for stars from a file.
 	//! Called when the SkyCulture is updated.
@@ -453,14 +467,6 @@ private:
 	//! Loads cross-identification data from a file.
 	//! @param the path to a file containing the cross-identification data.
 	void loadCrossIdentificationData(const QString& crossIdFile);
-
-	//! Loads parallax error data from a file.
-	//! @param the path to a file containing the parallax error data.
-	void loadPlxErr(const QString& plxErrFile);
-
-	//! Loads proper motion data from a file.
-	//! @param the path to a file containing the proper motion data.
-	void loadPMData(const QString& pmDataFile);
 
 	//! Gets the maximum search level.
 	// TODO: add a non-lame description - what is the purpose of the max search level?
@@ -507,36 +513,33 @@ private:
 
 	HipIndexStruct *hipIndex; // array of Hipparcos stars
 
-	static QHash<int, QString> commonNamesMap;     // the original names from skyculture (star_names.fab)
-	static QHash<int, QString> commonNamesMapI18n; // translated names
-	static QMap<QString, int> commonNamesIndexI18n;
-	static QMap<QString, int> commonNamesIndex;
+	static QHash<StarId, QString> commonNamesMap;     // the original names from skyculture (star_names.fab)
+	static QHash<StarId, QString> commonNamesMapI18n; // translated names
+	static QMap<QString, StarId> commonNamesIndexI18n;
+	static QMap<QString, StarId> commonNamesIndex;
 
-	static QHash<int, QString> additionalNamesMap; // additional names
-	static QHash<int, QString> additionalNamesMapI18n;
-	static QMap<QString, int> additionalNamesIndex;
-	static QMap<QString, int> additionalNamesIndexI18n;
+	static QHash<StarId, QString> additionalNamesMap; // additional names
+	static QHash<StarId, QString> additionalNamesMapI18n;
+	static QMap<QString, StarId> additionalNamesIndex;
+	static QMap<QString, StarId> additionalNamesIndexI18n;
 
-	static QHash<int, QString> sciDesignationsMapI18n;
-	static QMap<QString, int> sciDesignationsIndexI18n;
-	static QHash<int, QString> sciExtraDesignationsMapI18n;
-	static QMap<QString, int> sciExtraDesignationsIndexI18n;
+	static QHash<StarId, QString> sciDesignationsMapI18n;
+	static QMap<QString, StarId> sciDesignationsIndexI18n;
+	static QHash<StarId, QString> sciExtraDesignationsMapI18n;
+	static QMap<QString, StarId> sciExtraDesignationsIndexI18n;
 
-	static QHash<int, varstar> varStarsMapI18n;
-	static QMap<QString, int> varStarsIndexI18n;
+	static QHash<StarId, varstar> varStarsMapI18n;
+	static QMap<QString, StarId> varStarsIndexI18n;
 
-	static QHash<int, wds> wdsStarsMapI18n;
-	static QMap<QString, int> wdsStarsIndexI18n;
+	static QHash<StarId, wds> wdsStarsMapI18n;
+	static QMap<QString, StarId> wdsStarsIndexI18n;
 
 	static QMap<QString, crossid> crossIdMap;
-	static QMap<int, int> saoStarsIndex;
-	static QMap<int, int> hdStarsIndex;
-	static QMap<int, int> hrStarsIndex;
+	static QMap<int, StarId> saoStarsIndex;
+	static QMap<int, StarId> hdStarsIndex;
+	static QMap<int, StarId> hrStarsIndex;
 
-	static QHash<int, float> hipParallaxErrors;
-	static QHash<int, PMData> hipPMData;
-
-	static QHash<int, QString> referenceMap;
+	static QHash<StarId, QString> referenceMap;
 
 	QFont starFont;
 	static bool flagSciNames;

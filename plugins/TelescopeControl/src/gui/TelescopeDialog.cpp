@@ -22,6 +22,7 @@
 #include "StelApp.hpp"
 #include "StelModuleMgr.hpp"
 #include "StelStyle.hpp"
+#include "StelMainView.hpp"
 #include "StelTranslator.hpp"
 #include "TelescopeControl.hpp"
 #include "TelescopeConfigurationDialog.hpp"
@@ -109,8 +110,8 @@ void TelescopeDialog::createDialogContent()
 
 	//Inherited connect
 	connect(&StelApp::getInstance(), SIGNAL(languageChanged()), this, SLOT(retranslate()));
-	connect(ui->closeStelWindow, SIGNAL(clicked()), this, SLOT(close()));
-	connect(ui->TitleBar, SIGNAL(movedTo(QPoint)), this, SLOT(handleMovedTo(QPoint)));
+	connect(ui->titleBar, &TitleBar::closeClicked, this, &StelDialog::close);
+	connect(ui->titleBar, SIGNAL(movedTo(QPoint)), this, SLOT(handleMovedTo(QPoint)));
 
 	//Connect: sender, signal, receiver, method
 	//Page: Telescopes
@@ -119,16 +120,16 @@ void TelescopeDialog::createDialogContent()
 	connect(ui->pushButtonAdd, SIGNAL(clicked()), this, SLOT(buttonAddPressed()));
 	connect(ui->pushButtonRemove, SIGNAL(clicked()), this, SLOT(buttonRemovePressed()));
 	
-	connect(ui->telescopeTreeView, SIGNAL(clicked (const QModelIndex &)), this, SLOT(selectTelecope(const QModelIndex &)));
+	connect(ui->telescopeTreeView, SIGNAL(clicked (const QModelIndex &)), this, SLOT(selectTelescope(const QModelIndex &)));
 	//connect(ui->telescopeTreeView, SIGNAL(activated (const QModelIndex &)), this, SLOT(configureTelescope(const QModelIndex &)));
 	
 	//Page: Options:
 	connectBoolProperty(ui->checkBoxReticles,   "TelescopeControl.flagTelescopeReticles");
 	connectBoolProperty(ui->checkBoxLabels,     "TelescopeControl.flagTelescopeLabels");
 	connectBoolProperty(ui->checkBoxCircles,    "TelescopeControl.flagTelescopeCircles");
-	connectColorButton(ui->reticleColorButton,  "TelescopeControl.reticleColor", "TelescopeControl/color_telescope_reticles");
-	connectColorButton(ui->labelColorButton,    "TelescopeControl.labelColor",   "TelescopeControl/color_telescope_labels");
-	connectColorButton(ui->circleColorButton,   "TelescopeControl.circleColor",  "TelescopeControl/color_telescope_circles");
+	ui->reticleColorButton->setup("TelescopeControl.reticleColor", "TelescopeControl/color_telescope_reticles");
+	ui->labelColorButton  ->setup("TelescopeControl.labelColor",   "TelescopeControl/color_telescope_labels");
+	ui->circleColorButton ->setup("TelescopeControl.circleColor",  "TelescopeControl/color_telescope_circles");
 	connectBoolProperty(ui->checkBoxEnableLogs, "TelescopeControl.useTelescopeServerLogs");
 
 	connect(ui->checkBoxUseExecutables, SIGNAL(toggled(bool)), ui->labelExecutablesDirectory, SLOT(setEnabled(bool)));
@@ -250,9 +251,17 @@ void TelescopeDialog::setAboutText()
 	// Regexp to replace {text} with an HTML link.
 	static const QRegularExpression a_rx("[{]([^{]*)[}]");
 
+#ifdef Q_OS_MACOS
+	QString modifierNameCtrl = "⌘"; // Command key
+	QString modifierNameAlt = "⌥"; // Option key
+#else
+	QString modifierNameCtrl = "Ctrl";
+	QString modifierNameAlt = "Alt";
+#endif
+
 	//TODO: Expand
 	QString aboutPage = "<html><head></head><body>";
-	aboutPage += "<h2>" + q_("Telescope Control plug-in") + "</h2><table width=\"90%\">";
+	aboutPage += "<h2>" + q_("Telescope Control plug-in") + "</h2><table class='layout' width=\"90%\">";
 	aboutPage += "<tr width=\"30%\"><td><strong>" + q_("Version") + ":</strong></td><td>" + TELESCOPE_CONTROL_PLUGIN_VERSION + "</td></tr>";
 	aboutPage += "<tr><td><strong>" + q_("License") + ":</strong></td><td>" + TELESCOPE_CONTROL_PLUGIN_LICENSE + "</td></tr>";
 	aboutPage += "<tr><td rowspan=5><strong>" + q_("Authors") + "</strong></td><td>Johannes Gajdosik</td></td>";
@@ -278,7 +287,7 @@ void TelescopeDialog::setAboutText()
 	
 	QString helpPage = "<html><head></head><body>";
 	// TRANSLATORS: The text between braces is the text of an HTML link.
-	helpPage += "<p>" + q_("A more complete and up-to-date documentation for this plug-in can be found on the {Telescope Control} page in the Stellarium Wiki.").replace(a_rx, "<a href=\"http://stellarium.sourceforge.net/wiki/index.php/Telescope_Control_plug-in\">\\1</a>") + "</p>";
+	helpPage += "<p>" + q_("A more complete and up-to-date documentation for this plug-in can be found in the Stellarium User Guide.") + "</p>";
 	helpPage += "<h3><a name=\"top\" />" + q_("Contents") + "</h3><ul>";
 	helpPage += "<li><a href=\"#Abilities_and_limitations\">" + q_("Abilities and limitations") + "</a></li>";
 	helpPage += "<li><a href=\"#originalfeature\">" + q_("The original telescope control feature") + "</a></li>";
@@ -317,9 +326,9 @@ void TelescopeDialog::setAboutText()
 	helpPage += "<li><b>" + q_("INDIRECT CONNECTION") + "</b>: <ul>";
 	helpPage += "<li>";
 	// TRANSLATORS: The text between braces is the text of an HTML link.
-	helpPage += q_("A device is connected to the same computer but it is driven by a {stand-alone telescope server program}").replace(a_rx, "<a href=\"http://stellarium.sourceforge.net/wiki/index.php/Telescope_Control_%28client-server%29\">\\1</a>") + " ";
+	helpPage += q_("A device is connected to the same computer but it is driven by a stand-alone telescope server program") + " ";
 	// TRANSLATORS: The text between braces is the text of an HTML link.
-	helpPage += q_("or a {third-party application} <b>that can 'talk' to Stellarium</b>;").replace(a_rx, "<a href=\"http://stellarium.sourceforge.net/wiki/index.php/Telescope_Control#Third_party_applications\">\\1</a>");
+	helpPage += q_("or a third-party application <b>that can 'talk' to Stellarium</b>;");
 	helpPage += "</li>";
 	helpPage += "<li>" + q_("A device is connected to a remote computer and the software that drives it can 'talk' to Stellarium <i>over the network</i>; this software can be either one of Stellarium's stand-alone telescope servers, or a third party application.") + "</li></ul></li></ul>";
 	helpPage += "<p>";
@@ -336,10 +345,10 @@ void TelescopeDialog::setAboutText()
 	helpPage += "<li>" + q_("By pressing the 'configure' button for the plug-in in the 'Plugins' tab of Stellarium's Configuration window (opened by pressing <b>F2</b> or the respective button in the left toolbar).") + "</li>";
 	helpPage += "<li>";
 	// TRANSLATORS: The text between braces is the text of an HTML link.
-	helpPage += q_("By pressing the 'Configure telescopes...' button in the {'Slew to' window} (opened by pressing <b>Ctrl+0</b> or the respective button on the bottom toolbar).").replace(a_rx, "<a href=\"#slew_to\">\\1</a>");
+	helpPage += (q_("By pressing the 'Configure telescopes...' button in the {'Slew to' window} (opened by pressing <b>%1+0</b> or the respective button on the bottom toolbar).").arg(modifierNameCtrl)).replace(a_rx, "<a href=\"#slew_to\">\\1</a>");
 	helpPage += "</li></ul>";
 	helpPage += "<p>" + q_("The <b>Telescopes</b> tab displays a list of the telescope connections that have been set up:") + "</p><ul>";
-	helpPage += "<li>" + q_("The number (<b>#</b>) column shows the number used to control this telescope. For example, for telescope #2, the shortcut is Ctrl+2.") + "</li>";
+	helpPage += "<li>" + q_("The number (<b>#</b>) column shows the number used to control this telescope. For example, for telescope #2, the shortcut is %1+2.").arg(modifierNameCtrl) + "</li>";
 	helpPage += "<li>" + q_("The <b>Status</b> column indicates if this connection is currently active or not. Unfortunately, there are some cases in which 'Connected' is displayed when no working connection exists.") + "</li>";
 	helpPage += "<li>" + q_("The <b>Type</b> field indicates what kind of connection is this:") + "</li><ul>";
 	helpPage += "<li>";
@@ -427,7 +436,7 @@ void TelescopeDialog::setAboutText()
 	helpPage += "<p><a href=\"#top\"><small>[" + q_("Back to top") + "]</small></a></p>";
 
 	helpPage += "<h3><a name=\"slew_to\" />" + q_("'Slew telescope to' window") + "</h3>";
-	helpPage += "<p>" + q_("The 'Slew telescope to' window can be opened by pressing <b>Ctrl+0</b> or the respective button in the bottom toolbar.") + "</p>";
+	helpPage += "<p>" + q_("The 'Slew telescope to' window can be opened by pressing <b>%1+0</b> or the respective button in the bottom toolbar.").arg(modifierNameCtrl) + "</p>";
 	helpPage += "<p>" + q_("It contains two fields for entering celestial coordinates, selectors for the preferred format (Hours-Minutes-Seconds, Degrees-Minutes-Seconds, or Decimal degrees), a drop-down list and two buttons.") + "</p>";
 	helpPage += "<p>" + q_("The drop-down list contains the names of the currently connected devices.") + " ";
 	helpPage += q_("If no devices are connected, it will remain empty, and the 'Slew' button will be disabled.") + "</p>";
@@ -439,23 +448,21 @@ void TelescopeDialog::setAboutText()
 	// TRANSLATORS: The text between braces is the text of an HTML link.
 	helpPage += q_("Pressing the <b>Configure telescopes...</b> button opens the {main window} of the plug-in.").replace(a_rx, "<a href=\"#mainwindow\">\\1</a>");
 	helpPage += "</p>";
-	helpPage += "<p>" + q_("<b>TIP:</b> Inside the 'Slew' window, underlined letters indicate that pressing 'Alt + underlined letter' can be used instead of clicking.") + " ";
-	helpPage +=  q_("For example, pressing <b>Alt+S</b> is equivalent to clicking the 'Slew' button, pressing <b>Alt+E</b> switches to decimal degree format, etc.") + "</p>";
 	helpPage += "<p><a href=\"#top\"><small>[" + q_("Back to top") + "]</small></a></p>";
 
 	helpPage += "<h3><a name=\"commands\" />" + q_("Sending commands") + "</h3>";
 	helpPage += "<p>" + q_("Once a telescope is successfully started/connected, Stellarium displays a telescope reticle labelled with the telescope's name on its current position in the sky.")
 		 + " " + q_("The reticle is an object like every other in Stellarium - it can be selected with the mouse, it can be tracked and it appears as an object in the 'Search' window.") + "</p>";
-	helpPage += "<p>" + q_("<b>To point a device to an object:</b> Select an object (e.g. a star) and press the number of the device while holding down the <b>Ctrl</b> key.")
-		 + " (" + q_("For example, Ctrl+1 for telescope #1.") + ") "
+	helpPage += "<p>" + q_("<b>To point a device to an object:</b> Select an object (e.g. a star) and press the number of the device while holding down the <b>%1</b> key.").arg(modifierNameCtrl)
+		 + " (" + q_("For example, %1+1 for telescope #1.").arg(modifierNameCtrl) + ") "
 		 + q_("This will move the telescope to the selected object.") + "</p>";
-	helpPage += "<p>" + q_("<b>To point a device to the center of the view:</b> Press the number of the device while holding down the <b>Alt</b> key.")
-		 + " (" + q_("For example, Alt+1 for telescope #1.") + ") "
+	helpPage += "<p>" + q_("<b>To point a device to the center of the view:</b> Press the number of the device while holding down the <b>%1</b> key.").arg(modifierNameAlt)
+		 + " (" + q_("For example, %1+1 for telescope #1.").arg(modifierNameAlt) + ") "
 		 + q_("This will slew the device to the point in the center of the current view.")
 		 + " (" + q_("If you move the view after issuing the command, the target won't change unless you issue another command.") + ")</p>";
 	helpPage += "<p>";
 	// TRANSLATORS: The text between braces is the text of an HTML link.
-	helpPage += q_("<b>To point a device to a given set of coordinates:</b> Use the {'Slew to' window} (press <b>Ctrl+0</b>).").replace(a_rx, "<a href=\"#slew_to\">\\1</a>");
+	helpPage += q_("<b>To point a device to a given set of coordinates:</b> Use the {'Slew to' window} (press <b>%1+0</b>).").arg(modifierNameCtrl).replace(a_rx, "<a href=\"#slew_to\">\\1</a>");
 	helpPage += "</p>";
 	helpPage += "<p><a href=\"#top\"><small>[" + q_("Back to top") + "]</small></a></p>";
 
@@ -489,7 +496,7 @@ void TelescopeDialog::setAboutText()
 	helpPage += "</p>";
 	helpPage += "<p>";
 	// TRANSLATORS: The text between braces is the text of an HTML link.
-	helpPage += q_("This feature is equivalent to the 'Dummy' type of telescope supported by {Stellarium's original telescope control feature}.").replace(a_rx, "<a href=\"http://stellarium.sourceforge.net/wiki/index.php/Telescope_Control_%28client-server%29\">\\1</a>");
+	helpPage += q_("This feature is equivalent to the 'Dummy' type of telescope supported by Stellarium's original telescope control feature (~2006).");
 	helpPage += "</p>";
 	helpPage += "<p><a href=\"#top\"><small>[" + q_("Back to top") + "]</small></a></p>";
 
@@ -523,12 +530,14 @@ void TelescopeDialog::updateWarningTexts()
 	if (telescopeCount > 0)
 	{
 #ifdef Q_OS_MACOS
-		QString modifierName = "Command";
+		QString modifierNameCtrl = "⌘"; // Command key
+		QString modifierNameAlt = "⌥"; // Option key
 #else
-		QString modifierName = "Ctrl";
+		QString modifierNameCtrl = "Ctrl";
+		QString modifierNameAlt = "Alt";
 #endif
 		
-		text = QString(q_("To slew a connected telescope to an object (for example, a star), select that object, then hold down the %1 key and press the key with that telescope's number. To slew it to the center of the current view, hold down the Alt key and press the key with that telescope's number.")).arg(modifierName);
+		text = QString(q_("To slew a connected telescope to an object (for example, a star), select that object, then hold down the %1 key and press the key with that telescope's number. To slew it to the center of the current view, hold down the %2 key and press the key with that telescope's number.")).arg(modifierNameCtrl, modifierNameAlt);
 	}
 	else
 	{
@@ -635,7 +644,7 @@ void TelescopeDialog::updateModelRow(int rowNumber,
 }
 
 
-void TelescopeDialog::selectTelecope(const QModelIndex & index)
+void TelescopeDialog::selectTelescope(const QModelIndex & index)
 {
 	//Extract selected item index
 	int selectedSlot = telescopeListModel->data( telescopeListModel->index(index.row(),0) ).toInt();
@@ -1021,7 +1030,7 @@ void TelescopeDialog::updateStyle()
 
 void TelescopeDialog::buttonBrowseServerDirectoryPressed()
 {
-	QString newPath = QFileDialog::getExistingDirectory (nullptr, QString(q_("Select a directory")), telescopeManager->getServerExecutablesDirectoryPath());
+	QString newPath = QFileDialog::getExistingDirectory (&StelMainView::getInstance(), QString(q_("Select a directory")), telescopeManager->getServerExecutablesDirectoryPath());
 	//TODO: Validation? Directory exists and contains servers?
 	if(!newPath.isEmpty())
 	{

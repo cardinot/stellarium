@@ -168,8 +168,12 @@ void Quasars::init()
 		Quasar::markerTexture = StelApp::getInstance().getTextureManager().createTexture(":/Quasars/quasar.png");
 
 		// key bindings and other actions
-		addAction("actionShow_Quasars", N_("Quasars"), N_("Show quasars"), "quasarsVisible", "Ctrl+Alt+Q");
-		addAction("actionShow_Quasars_dialog", N_("Quasars"), N_("Show settings dialog"), configDialog, "visible", ""); // Allow assign shortkey
+		QString section = N_("Quasars");
+		addAction("actionShow_Quasars", section, N_("Show quasars"), "quasarsVisible", "Ctrl+Alt+Q");
+		addAction("actionShow_Quasars_dialog", section, N_("Show settings dialog"), configDialog, "visible", ""); // Allow assign shortkey
+		// no default hotkeys
+		addAction("actionShow_Quasars_Distribution", section, N_("Enable display of distribution for quasars"), "flagDisplayMode");
+		addAction("actionShow_Quasars_Markers", section, N_("Use markers for quasars"), "flagMarkersMode");
 
 		GlowIcon = new QPixmap(":/graphicGui/miscGlow32x32.png");
 		OnIcon = new QPixmap(":/Quasars/btQuasars-on.png");
@@ -194,11 +198,11 @@ void Quasars::init()
 	}
 	else
 	{
-		qDebug() << "[Quasars] quasars.json does not exist - copying default file to" << QDir::toNativeSeparators(catalogJsonPath);
+		qInfo().noquote() << "[Quasars] quasars.json does not exist - copying default file to" << QDir::toNativeSeparators(catalogJsonPath);
 		restoreDefaultJsonFile();
 	}
 
-	qDebug() << "[Quasars] Loading catalog file:" << QDir::toNativeSeparators(catalogJsonPath);
+	qInfo().noquote() << "[Quasars] Loading catalog file:" << QDir::toNativeSeparators(catalogJsonPath);
 
 	readJsonFile();
 
@@ -230,7 +234,7 @@ void Quasars::draw(StelCore* core)
 	StelPainter painter(prj);
 	painter.setFont(font);
 
-	for (const auto& quasar : qAsConst(QSO))
+	for (const auto& quasar : std::as_const(QSO))
 	{
 		if (quasar && quasar->initialized)
 			quasar->draw(core, painter);
@@ -255,8 +259,7 @@ void Quasars::drawPointer(StelCore* core, StelPainter& painter)
 		if (!painter.getProjector()->project(pos.toVec3f(), screenpos))
 			return;
 
-		const Vec3f& c(obj->getInfoColor());
-		painter.setColor(c[0],c[1],c[2]);
+		painter.setColor(obj->getInfoColor());
 		texPointer->bind();
 		painter.setBlending(true);
 		painter.drawSprite2dMode(screenpos[0], screenpos[1], 13.f, StelApp::getInstance().getTotalRunTime()*40.);
@@ -402,14 +405,14 @@ bool Quasars::backupJsonFile(bool deleteOriginal)
 		{
 			if (!old.remove())
 			{
-				qWarning() << "[Quasars] WARNING - could not remove old quasars.json file";
+				qWarning() << "[Quasars] Could not remove old quasars.json file";
 				return false;
 			}
 		}
 	}
 	else
 	{
-		qWarning() << "[Quasars] WARNING - failed to copy quasars.json to quasars.json.old";
+		qWarning() << "[Quasars] Failed to copy quasars.json to quasars.json.old";
 		return false;
 	}
 
@@ -498,7 +501,7 @@ int Quasars::getJsonFileFormatVersion(void)
 	{
 		jsonVersion = map.value("version").toInt();
 	}
-	qDebug() << "[Quasars] Version of the format of the catalog:" << jsonVersion;
+	qInfo().noquote() << "[Quasars] Version of the format of the catalog:" << jsonVersion;
 	return jsonVersion;
 }
 
@@ -640,7 +643,7 @@ void Quasars::deleteDownloadProgressBar()
 	}
 }
 
-void Quasars::startDownload(QString urlString)
+void Quasars::startDownload(const QString &urlString)
 {
 	QUrl url(urlString);
 	if (!url.isValid() || url.isRelative() || !url.scheme().startsWith("http", Qt::CaseInsensitive))
@@ -659,7 +662,7 @@ void Quasars::startDownload(QString urlString)
 	request.setUrl(QUrl(updateUrl));
 	request.setRawHeader("User-Agent", StelUtils::getUserAgentString().toUtf8());
 #if (QT_VERSION<QT_VERSION_CHECK(6,0,0))
-	request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+	request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, true);
 #endif
 	downloadReply = networkManager->get(request);
 	connect(downloadReply, SIGNAL(downloadProgress(qint64,qint64)), this, SLOT(updateDownloadProgress(qint64,qint64)));
@@ -747,7 +750,7 @@ void Quasars::downloadComplete(QNetworkReply *reply)
 	//readJsonFile();
 }
 
-void Quasars::displayMessage(const QString& message, const QString hexColor)
+void Quasars::displayMessage(const QString& message, const QString &hexColor)
 {
 	messageIDs << GETSTELMODULE(LabelMgr)->labelScreen(message, 30, 30 + (20*messageIDs.count()), true, 16, hexColor, false, 9000);
 }
@@ -791,6 +794,7 @@ bool Quasars::getDisplayMode()
 void Quasars::setDisplayMode(bool b)
 {
 	Quasar::distributionMode=b;
+	emit displayModeChanged(b);
 }
 
 bool Quasars::getFlagUseQuasarMarkers()
@@ -801,6 +805,7 @@ bool Quasars::getFlagUseQuasarMarkers()
 void Quasars::setFlagUseQuasarMarkers(bool b)
 {
 	Quasar::useMarkers = b;
+	emit markersModeChanged(b);
 }
 
 Vec3f Quasars::getMarkerColor()

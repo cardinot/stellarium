@@ -20,6 +20,7 @@
 #ifndef STELLOCALEMGR_HPP
 #define STELLOCALEMGR_HPP
 
+#include <memory>
 #include "StelTranslator.hpp"
 #include "StelCore.hpp"
 
@@ -77,6 +78,9 @@ public:
 	//! Get a reference to the StelTranslator object currently used for scripts.
 	const StelTranslator &getScriptsTranslator() const;
 
+	//! Get a reference to the StelTranslator object currently used for sky cultures descriptions.
+	const StelTranslator &getSkyCultureDescriptionsTranslator() const;
+
 	//! Get the type (RTL or LTR) of language currently used for sky objects
 	bool isSkyRTL() const;
 	
@@ -129,17 +133,21 @@ public:
 	};
 	
 	//! Get a localized, formatted string representation of the date component of a Julian date.
-	QString getPrintableDateLocal(double JD) const;
+	//! @param utcOffsetHrs from StelCore::getUTCOffset(JD)
+	QString getPrintableDateLocal(double JD, double utcOffsetHrs) const;
 	
 	//! Get a localized, formatted string representation of the time component of a Julian date.
-	QString getPrintableTimeLocal(double JD) const;
+	//! @param utcOffsetHrs from StelCore::getUTCOffset(JD)
+	QString getPrintableTimeLocal(double JD, double utcOffsetHrs) const;
 
 	//! Get a localized, formatted string representation of the time zone of a Julian date.
-	QString getPrintableTimeZoneLocal(double JD) const;
+	//! @param utcOffsetHrs from StelCore::getUTCOffset(JD)
+	QString getPrintableTimeZoneLocal(double JD, double utcOffsetHrs) const;
 
 	//! Return the time in ISO 8601 format that is : %Y-%m-%dT%H:%M:%S
 	//! @param JD the time and date expressed as a Julian date value.
-	QString getISO8601TimeLocal(double JD) const;
+	//! @param utcOffsetHrs from StelCore::getUTCOffset(JD)
+	QString getISO8601TimeLocal(double JD, double utcOffsetHrs) const;
 
 	//! Return the JD time for a local time ISO 8601 format that is:
 	//! %Y-%m-%dT%H:%M:%S, but %Y can be a large number with sign, and
@@ -171,9 +179,10 @@ private:
 	//! Call this at program start and then after each language change.
 	static void createNameLists();
 	// The translator used for astronomical object naming
-	StelTranslator* skyTranslator;
-	StelTranslator* planetaryFeaturesTranslator;
-	StelTranslator* scriptsTranslator;
+	std::unique_ptr<StelTranslator> skyTranslator;
+	std::unique_ptr<StelTranslator> planetaryFeaturesTranslator;
+	std::unique_ptr<StelTranslator> scriptsTranslator;
+	std::unique_ptr<StelTranslator> skyCultureDescriptionsTranslator;
 	StelCore* core;
 	
 	// Date and time variables

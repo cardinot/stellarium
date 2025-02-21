@@ -75,7 +75,6 @@ StelSkyDrawer::StelSkyDrawer(StelCore* acore) :
 	starShaderProgram(Q_NULLPTR),
 	starShaderVars(StarShaderVars()),
 	nbPointSources(0),
-	maxPointSources(1000),
 	maxLum(0.f),
 	oldLum(-1.f),
 	flagLuminanceAdaptation(false),
@@ -390,7 +389,6 @@ bool StelSkyDrawer::computeRCMag(float mag, RCMag* rcMag) const
 {
 	rcMag->radius = eye->adaptLuminanceScaledLn(pointSourceMagToLnLuminance(mag), static_cast<float>(starRelativeScale)*1.40f*0.5f);
 	rcMag->radius *=starLinearScale;
-	rcMag->radius *=StelMainView::getInstance().getCustomScreenshotMagnification();
 	// Use now statically min_rmag = 0.5, because higher and too small values look bad
 	if (rcMag->radius < 0.3f)
 	{
@@ -420,6 +418,7 @@ bool StelSkyDrawer::computeRCMag(float mag, RCMag* rcMag) const
 			rcMag->radius=MAX_LINEAR_RADIUS+std::sqrt(1.f+rcMag->radius-MAX_LINEAR_RADIUS)-1.f;
 		}
 	}
+	rcMag->radius *= StelApp::getInstance().getScreenScale();
 	return true;
 }
 
@@ -446,9 +445,8 @@ void StelSkyDrawer::postDrawPointSource(StelPainter* sPainter)
 		texHalo->bind();
 	sPainter->setBlending(true, GL_ONE, GL_ONE);
 
-	const Mat4f& m = sPainter->getProjector()->getProjectionMatrix();
-	const QMatrix4x4 qMat(m[0], m[4], m[8], m[12], m[1], m[5], m[9], m[13], m[2], m[6], m[10], m[14], m[3], m[7], m[11], m[15]);
-	
+	const QMatrix4x4 qMat=sPainter->getProjector()->getProjectionMatrix().toQMatrix();
+
 	vbo->bind();
 	vbo->write(0, vertexArray, nbPointSources*6*sizeof(StarVertex));
 	vbo->write(maxPointSources*6*sizeof(StarVertex), textureCoordArray, nbPointSources*6*2);
@@ -478,21 +476,19 @@ bool StelSkyDrawer::drawPointSource(StelPainter* sPainter, const Vec3d& v, const
 	if (!(checkInScreen ? sPainter->getProjector()->projectCheck(v, win) : sPainter->getProjector()->project(v, win)))
 		return false;
 
-	const float radius = rcMag.radius * static_cast<float>(sPainter->getProjector()->getDevicePixelsPerPixel());
-#if QT_VERSION >= QT_VERSION_CHECK(5, 10, 0)
+	const float radius = rcMag.radius;
 	const float frand=StelApp::getInstance().getRandF();
-#else
-	const float frand=static_cast<float>(qrand())/static_cast<float>(RAND_MAX);
-#endif
 
 	// Random coef for star twinkling. twinkleFactor can introduce height-dependent twinkling.
 	const float tw = ((flagStarTwinkle && (flagHasAtmosphere || flagForcedTwinkle))) ? (1.f-twinkleFactor*static_cast<float>(twinkleAmount)*frand)*rcMag.luminance : rcMag.luminance;
 
+	const float scale = StelApp::getInstance().getScreenScale();
 	// If the rmag is big, draw a big halo
-	if (flagDrawBigStarHalo && radius>MAX_LINEAR_RADIUS+5.f)
+	const float bigHaloThresholdRadius = (MAX_LINEAR_RADIUS+5)*scale;
+	if (flagDrawBigStarHalo && radius > bigHaloThresholdRadius)
 	{
-		float cmag = qMin(1.0f, qMin(rcMag.luminance, (radius-(MAX_LINEAR_RADIUS+5.f))/30.f));
-		float rmag = 150.f;
+		const float cmag = qMin(1.0f, qMin(rcMag.luminance, (radius-bigHaloThresholdRadius)/30.f/scale));
+		const float rmag = 150.f * scale;
 
 		texBigHalo->bind();
 		sPainter->setBlending(true, GL_ONE, GL_ONE);
@@ -500,10 +496,10 @@ bool StelSkyDrawer::drawPointSource(StelPainter* sPainter, const Vec3d& v, const
 		sPainter->drawSprite2dModeNoDeviceScale(win[0], win[1], rmag);
 	}
 
-	unsigned char starColor[3] = {0, 0, 0};
-	starColor[0] = static_cast<unsigned char>(std::min(static_cast<int>(color[0]*tw*255+0.5f), 255));
-	starColor[1] = static_cast<unsigned char>(std::min(static_cast<int>(color[1]*tw*255+0.5f), 255));
-	starColor[2] = static_cast<unsigned char>(std::min(static_cast<int>(color[2]*tw*255+0.5f), 255));
+	unsigned char starColor[3] = {
+		static_cast<unsigned char>(std::min(static_cast<int>(color[0]*tw*255+0.5f), 255)),
+		static_cast<unsigned char>(std::min(static_cast<int>(color[1]*tw*255+0.5f), 255)),
+		static_cast<unsigned char>(std::min(static_cast<int>(color[2]*tw*255+0.5f), 255))};
 	
 	// Store the drawing instructions in the vertex arrays
 	StarVertex* vx = &(vertexArray[nbPointSources*6]);
@@ -534,7 +530,7 @@ void StelSkyDrawer::drawSunCorona(StelPainter* painter, const Vec3f& v, float ra
 	// For some reason we must mix color with the given alpha as well, else mixing does not work.
 	painter->setColor(color*alpha, alpha);
 	// pre-compensate the automatic scaling of sprite painting on HiDPI screens
-	radius /= static_cast<float>(painter->getProjector()->getDevicePixelsPerPixel())*StelApp::getInstance().getGlobalScalingRatio();
+	radius /= static_cast<float>(painter->getProjector()->getDevicePixelsPerPixel());
 	// Our corona image was made in 2008-08-01 near Khovd, Mongolia. It shows the correct parallactic angle for its location and time, we must add this, and subtract the ecliptic/equator angle from that date of 15.43 degrees.
 	painter->drawSprite2dMode(win[0], win[1], radius, -angle+44.65f-15.43f);
 
@@ -544,10 +540,11 @@ void StelSkyDrawer::drawSunCorona(StelPainter* painter, const Vec3f& v, float ra
 // Terminate drawing of a 3D model, draw the halo
 void StelSkyDrawer::postDrawSky3dModel(StelPainter* painter, const Vec3d& v, float illuminatedArea, float mag, const Vec3f& color, const bool isSun)
 {
+	const float scale = StelApp::getInstance().getScreenScale();
 	const float pixPerRad = painter->getProjector()->getPixelPerRadAtCenter();
 	// Assume a disk shape
 	float pixRadius = std::sqrt(illuminatedArea/(60.f*60.f)*M_PI_180f*M_PI_180f*(pixPerRad*pixPerRad))/M_PIf;
-	float pxRd = pixRadius*3.f+100.f;
+	float pxRd = pixRadius*3.f+100.f*scale;
 	bool noStarHalo = false;
 
 	if (isSun)
@@ -557,8 +554,8 @@ void StelSkyDrawer::postDrawSky3dModel(StelPainter* painter, const Vec3d& v, flo
 		texSunHalo->bind();
 		painter->setBlending(true, GL_ONE, GL_ONE);
 
-		float rmag = big3dModelHaloRadius*(mag+15.f)/-11.f;
-		float cmag = (rmag>=pxRd) ? 1.f : qMax(0.15f, 1.f-(pxRd-rmag)/100); // was qMax(0, .), but this would remove the halo when sun is dim.
+		const float rmag = big3dModelHaloRadius*scale*(mag+15.f)/-11.f;
+		const float cmag = (rmag>=pxRd) ? 1.f : qMax(0.15f, 1.f-(pxRd-rmag)/100/scale); // was qMax(0, .), but this would remove the halo when sun is dim.
 		Vec3f win;
 		painter->getProjector()->project(v, win);
 		painter->setColor(color*cmag);
@@ -585,15 +582,16 @@ void StelSkyDrawer::postDrawSky3dModel(StelPainter* painter, const Vec3d& v, flo
 	// so that the radius of the halo is small enough to be not visible (so that we see the disk)
 
 	// TODO: Change drawing halo to more realistic view of stars and planets
-	float tStart = 3.f; // Was 2.f: planet's halo is too dim. Atque 2020-11-12: No need to change these anymore. It appears that this has to do with halo size vs FOV (?).
-	float tStop = 6.f;
+	float tStart = 3.f*scale; // Was 2.f: planet's halo is too dim. Atque 2020-11-12: No need to change these anymore. It appears that this has to do with halo size vs FOV (?).
+	float tStop = 6.f*scale;
 	bool truncated=false;
 
 	float maxHaloRadius = qMax(tStart*6.f, pixRadius*3.f); //Atque 2020-11-12: Careful, if tStart*6.f is too big (tStart*10.f or something), the Moon gets a ridiculously big halo.
 	if (rcm.radius>maxHaloRadius)
 	{
 		truncated = true;
-		rcm.radius=maxHaloRadius+std::sqrt(rcm.radius-maxHaloRadius);
+		// One more factor of scale here is needed to compensate for taking a square root of the already included factor
+		rcm.radius=maxHaloRadius+std::sqrt((rcm.radius-maxHaloRadius)*scale);
 	}
 
 	// Fade the halo away when the disk is too big
@@ -715,6 +713,7 @@ void StelSkyDrawer::setLightPollutionLuminance(const double luminance)
 	if(lightPollutionLuminance==luminance)
 		return;
 	lightPollutionLuminance=luminance;
+	StelApp::immediateSave("stars/init_light_pollution_luminance", luminance);
 	emit lightPollutionLuminanceChanged(luminance);
 }
 
@@ -728,6 +727,7 @@ void StelSkyDrawer::setFlagStarSpiky(bool b)
 	if (b!=flagStarSpiky)
 	{
 		flagStarSpiky=b;
+		StelApp::immediateSave("stars/flag_star_spiky", b);
 		emit flagStarSpikyChanged(flagStarSpiky);
 	}
 }
@@ -929,4 +929,182 @@ void StelSkyDrawer::initColorTableFromConfigFile(QSettings* conf)
 double StelSkyDrawer::getWorldAdaptationLuminance() const
 {
 	return static_cast<double>(eye->getWorldAdaptationLuminance());
+}
+
+void StelSkyDrawer::setRelativeStarScale(double b)
+{
+	starRelativeScale=b;
+	StelApp::immediateSave("stars/relative_scale", b);
+	emit relativeStarScaleChanged(b);
+}
+
+void StelSkyDrawer::setAbsoluteStarScale(double b)
+{
+	starAbsoluteScaleF=b;
+	StelApp::immediateSave("stars/absolute_scale", b);
+	emit absoluteStarScaleChanged(b);
+}
+
+void StelSkyDrawer::setTwinkleAmount(double b)
+{
+	twinkleAmount=b;
+	StelApp::immediateSave("stars/star_twinkle_amount", b);
+	emit twinkleAmountChanged(b);
+}
+
+void StelSkyDrawer::setFlagTwinkle(bool b)
+{
+	if(b!=flagStarTwinkle)
+	{
+		flagStarTwinkle=b;
+		StelApp::immediateSave("stars/flag_star_twinkle", b);
+		emit flagTwinkleChanged(b);
+	}
+}
+
+void StelSkyDrawer::setFlagForcedTwinkle(bool b)
+{
+	if(b!=flagForcedTwinkle)
+	{
+		flagForcedTwinkle=b;
+		StelApp::immediateSave("stars/flag_forced_twinkle", b);
+		emit flagForcedTwinkleChanged(b);
+	}
+}
+
+void StelSkyDrawer::setFlagDrawBigStarHalo(bool b)
+{
+	if(b!=flagDrawBigStarHalo)
+	{
+		flagDrawBigStarHalo=b;
+		StelApp::immediateSave("stars/flag_star_halo", b);
+		emit flagDrawBigStarHaloChanged(b);
+	}
+}
+
+void StelSkyDrawer::setFlagStarMagnitudeLimit(bool b)
+{
+	if(b!=flagStarMagnitudeLimit)
+	{
+		flagStarMagnitudeLimit = b;
+		StelApp::immediateSave("astro/flag_star_magnitude_limit", b);
+		emit flagStarMagnitudeLimitChanged(b);
+	}
+}
+
+void StelSkyDrawer::setFlagNebulaMagnitudeLimit(bool b)
+{
+	if(b!=flagNebulaMagnitudeLimit)
+	{
+		flagNebulaMagnitudeLimit = b;
+		StelApp::immediateSave("astro/flag_nebula_magnitude_limit", b);
+		emit flagNebulaMagnitudeLimitChanged(b);
+	}
+}
+
+void StelSkyDrawer::setFlagPlanetMagnitudeLimit(bool b)
+{
+	if(b!=flagPlanetMagnitudeLimit)
+	{
+		flagPlanetMagnitudeLimit = b;
+		StelApp::immediateSave("astro/flag_planet_magnitude_limit", b);
+		emit flagPlanetMagnitudeLimitChanged(b);
+	}
+}
+
+void StelSkyDrawer::setCustomStarMagnitudeLimit(double limit)
+{
+	customStarMagLimit=limit;
+	StelApp::immediateSave("astro/star_magnitude_limit", limit);
+	emit customStarMagLimitChanged(limit);
+}
+
+void StelSkyDrawer::setCustomNebulaMagnitudeLimit(double limit)
+{
+	customNebulaMagLimit=limit;
+	StelApp::immediateSave("astro/nebula_magnitude_limit", limit);
+	emit customNebulaMagLimitChanged(limit);
+}
+
+void StelSkyDrawer::setCustomPlanetMagnitudeLimit(double limit)
+{
+	customPlanetMagLimit=limit;
+	StelApp::immediateSave("astro/planet_magnitude_limit", limit);
+	emit customPlanetMagLimitChanged(limit);
+}
+
+void StelSkyDrawer::setFlagLuminanceAdaptation(bool b)
+{
+	if(b!=flagLuminanceAdaptation)
+	{
+		flagLuminanceAdaptation=b;
+		StelApp::immediateSave("viewing/use_luminance_adaptation", b);
+		emit flagLuminanceAdaptationChanged(b);
+	}
+}
+
+void StelSkyDrawer::setDaylightLabelThreshold(double t)
+{
+	daylightLabelThreshold=t;
+	StelApp::immediateSave("viewing/sky_brightness_label_threshold", t);
+	emit daylightLabelThresholdChanged(t);
+}
+
+void StelSkyDrawer::setExtinctionCoefficient(double extCoeff)
+{
+	extinction.setExtinctionCoefficient(static_cast<float>(extCoeff));
+	StelApp::immediateSave("landscape/atmospheric_extinction_coefficient", extCoeff);
+	emit extinctionCoefficientChanged(static_cast<double>(extinction.getExtinctionCoefficient()));
+}
+
+void StelSkyDrawer::setAtmosphereTemperature(double celsius)
+{
+	refraction.setTemperature(static_cast<float>(celsius));
+	StelApp::immediateSave("landscape/temperature_C", celsius);
+	emit atmosphereTemperatureChanged(static_cast<double>(refraction.getTemperature()));
+}
+
+void StelSkyDrawer::setAtmospherePressure(double mbar)
+{
+	refraction.setPressure(static_cast<float>(mbar));
+	StelApp::immediateSave("landscape/pressure_mbar", mbar);
+	emit atmospherePressureChanged(static_cast<double>(refraction.getPressure()));
+}
+
+// These are to find out the best sky parameters. Program feature for debugging/expert mode.
+// These will be connected from AtmosphereDialog and forward the settings to SkyLight class.
+
+void StelSkyDrawer::setFlagDrawSunAfterAtmosphere(bool val)
+{
+	flagDrawSunAfterAtmosphere=val;
+	QSettings* conf = StelApp::getInstance().getSettings();
+	 conf->setValue("landscape/draw_sun_after_atmosphere",val);
+	 conf->sync();
+	 emit flagDrawSunAfterAtmosphereChanged(val);
+}
+
+void StelSkyDrawer::setFlagEarlySunHalo(bool val)
+{
+	flagEarlySunHalo= val;
+	QSettings* conf = StelApp::getInstance().getSettings();
+	conf->setValue("landscape/early_solar_halo", val);
+	conf->sync();
+	emit flagEarlySunHaloChanged(val);
+}
+
+void StelSkyDrawer::setFlagTfromK(bool val)
+{
+	flagTfromK=val;
+	QSettings* conf = StelApp::getInstance().getSettings();
+	conf->setValue("landscape/use_T_from_k", val);
+	conf->sync();
+	emit flagTfromKChanged(val);
+}
+
+void StelSkyDrawer::setT(double newT)
+{
+    turbidity=static_cast<float>(newT);
+        QSettings* conf = StelApp::getInstance().getSettings();
+        conf->setValue("landscape/turbidity", newT);
+        emit turbidityChanged(newT);
 }

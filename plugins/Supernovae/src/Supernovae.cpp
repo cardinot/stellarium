@@ -33,6 +33,7 @@
 #include "Supernovae.hpp"
 #include "SupernovaeDialog.hpp"
 #include "StelProgressController.hpp"
+#include "StarMgr.hpp"
 
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
@@ -164,11 +165,11 @@ void Supernovae::init()
 	}
 	else
 	{
-		qDebug() << "[Supernovae] supernovae.json does not exist - copying default file to" << QDir::toNativeSeparators(sneJsonPath);
+		qInfo().noquote() << "[Supernovae] supernovae.json does not exist - copying default file to" << QDir::toNativeSeparators(sneJsonPath);
 		restoreDefaultJsonFile();
 	}
 
-	qDebug() << "[Supernovae] loading catalog file:" << QDir::toNativeSeparators(sneJsonPath);
+	qInfo().noquote() << "[Supernovae] Loading catalog file:" << QDir::toNativeSeparators(sneJsonPath);
 
 	readJsonFile();
 
@@ -184,6 +185,8 @@ void Supernovae::init()
 
 	connect(this, SIGNAL(jsonUpdateComplete(void)), this, SLOT(reloadCatalog()));
 	connect(StelApp::getInstance().getCore(), SIGNAL(configurationDataSaved()), this, SLOT(saveSettings()));
+	StarMgr* smgr = GETSTELMODULE(StarMgr);
+	connect(smgr, SIGNAL(starLabelsDisplayedChanged(bool)), this, SLOT(setFlagSyncShowLabels(bool)));
 
 	GETSTELMODULE(StelObjectMgr)->registerStelObjectMgr(this);
 }
@@ -197,7 +200,7 @@ void Supernovae::draw(StelCore* core)
 	StelPainter painter(prj);
 	painter.setFont(font);
 	
-	for (const auto& sn : qAsConst(snstar))
+	for (const auto& sn : std::as_const(snstar))
 	{
 		if (sn && sn->initialized)
 			sn->draw(core, painter);
@@ -220,8 +223,7 @@ void Supernovae::drawPointer(StelCore* core, StelPainter& painter)
 		if (!painter.getProjector()->project(pos, screenpos))
 			return;
 
-		const Vec3f& c(obj->getInfoColor());
-		painter.setColor(c[0],c[1],c[2]);
+		painter.setColor(obj->getInfoColor());
 		texPointer->bind();
 		painter.setBlending(true);
 		painter.drawSprite2dMode(static_cast<float>(screenpos[0]), static_cast<float>(screenpos[1]), 13.f, static_cast<float>(StelApp::getInstance().getTotalRunTime())*40.f);
@@ -346,14 +348,14 @@ bool Supernovae::backupJsonFile(bool deleteOriginal)
 		{
 			if (!old.remove())
 			{
-				qWarning() << "[Supernovae] WARNING - could not remove old supernovas.json file";
+				qWarning() << "[Supernovae] Could not remove old supernovas.json file";
 				return false;
 			}
 		}
 	}
 	else
 	{
-		qWarning() << "[Supernovae] WARNING - failed to copy supernovae.json to supernovae.json.old";
+		qWarning() << "[Supernovae] Failed to copy supernovae.json to supernovae.json.old";
 		return false;
 	}
 
@@ -445,7 +447,7 @@ int Supernovae::getJsonFileVersion(void) const
 		jsonVersion = map.value("version").toInt();
 	}
 
-	qDebug() << "[Supernovae] version of the catalog:" << jsonVersion;
+	qInfo().noquote() << "[Supernovae] version of the catalog:" << jsonVersion;
 	return jsonVersion;
 }
 
@@ -602,7 +604,7 @@ void Supernovae::deleteDownloadProgressBar()
 	}
 }
 
-void Supernovae::startDownload(QString urlString)
+void Supernovae::startDownload(const QString &urlString)
 {
 	QUrl url(urlString);
 	if (!url.isValid() || url.isRelative() || !url.scheme().startsWith("http", Qt::CaseInsensitive))
@@ -621,7 +623,7 @@ void Supernovae::startDownload(QString urlString)
 	request.setUrl(QUrl(updateUrl));
 	request.setRawHeader("User-Agent", StelUtils::getUserAgentString().toUtf8());
 #if (QT_VERSION<QT_VERSION_CHECK(6,0,0))
-	request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+	request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, true);
 #endif
 	downloadReply = networkManager->get(request);
 	connect(downloadReply, SIGNAL(downloadProgress(qint64,qint64)), this, SLOT(updateDownloadProgress(qint64,qint64)));
@@ -709,7 +711,7 @@ void Supernovae::downloadComplete(QNetworkReply *reply)
 	//readJsonFile();
 }
 
-void Supernovae::displayMessage(const QString& message, const QString hexColor)
+void Supernovae::displayMessage(const QString& message, const QString &hexColor)
 {
 	messageIDs << GETSTELMODULE(LabelMgr)->labelScreen(message, 30, 30 + (20*messageIDs.count()), true, 16, hexColor, false, 9000);
 }

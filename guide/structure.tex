@@ -88,7 +88,10 @@
 \newcommand{\var}[1]{\texttt{#1}} %% variable name
 
 %% Color boxes for config.ini 
-\newcommand{\ccbox}[1]{#1\quad\colorbox[rgb]{#1}{\makebox(8,8){}}}
+\newcommand{\ccbox}[2][none]{\setlength{\fboxsep}{0mm}\ifthenelse{\equal{#1}{box}}
+{#2\quad\fbox{\colorbox[rgb]{#2}{\makebox(10,10){}}}}
+{#2\quad\colorbox[rgb]{#2}{\makebox(10,10){}}}
+}
 %% Color boxes for descriptions
 \newcommand{\ccboxdsc}[1]{\colorbox[rgb]{#1}{\makebox(4,4){}}}
 
@@ -104,6 +107,7 @@
 %\newcommand{\button}[1]{\fbox{\textbf{\textsf{\scriptsize #1}}}}
 % V1.0: Better use menu
 \newcommand{\button}[1]{\menu{#1}}
+\newcommand{\checkbox}[1]{\menu{\CheckedBox\  #1}}
 %% Person names. In some places they have been italicised, in others bold. Make them appear the same with this, and add them to the index.
 %% Names should be given with First names and surnames like \name[Johann]{Bayer}. The index will be built sorted by entry surnames.
 %% Unfortunately, these cause problems (Ugly rendering, and Stack size exceeded) with tex4ht. But we don't have an index in the HTML version, so just ignore.
@@ -158,6 +162,82 @@
 \newcommand{\cy}{\ensuremath{\,\mathrm{cy}}} % century
 \newcommand{\cdpmQ}{\ensuremath{\,\mathrm{cd}/\mathrm{m}^2}} % candela
 
+
+% Define JavaScript for script listings
+% Taken from https://tex.stackexchange.com/questions/89574/language-option-supported-in-listings
+%\definecolor{lightgray}{rgb}{.9,.9,.9}
+\definecolor{darkgray}{rgb}{.4,.4,.4}
+%\definecolor{purple}{rgb}{0.65, 0.12, 0.82}
+\lstdefinelanguage{JavaScript}{
+   basicstyle=\fontfamily{pcr}\selectfont,
+%  keywords={break, case, catch, continue, debugger, default, delete, do, else, false, finally, for, function, if, in, instanceof, new, null, return, switch, this, throw, true, try, typeof, var, void, while, with},
+% The following includes TypeScript
+  keywords={abstract, any, as, boolean, break, case, catch, class, console, 
+    const, continue, debugger, declare, default, delete, do, else, enum, export, 
+    extends, false, finally, for, from, function, get, if, implements, import, in, 
+    infer, instanceof, interface, keyof, let, module, namespace, never, new, null, 
+    number, object, package, private, protected, public, readonly, require, return, 
+    set, static, string, super, switch, symbol, this, throw, true, try, type, typeof, 
+    undefined, unique, unknown, var, void, while, with, yield},
+  morecomment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  morestring=[b]',
+  morestring=[b]",
+  keepspaces=true,%
+  showstringspaces=false,
+  escapeinside={(*}{*)},%
+  keywords=[2]{class, export, boolean, throw, implements, import, this},
+  keywordstyle=\color{green!40!black}\bfseries, % or blue in the example.
+  keywordstyle=[2]\color{darkgray}\bfseries,
+  identifierstyle=\color{blue},
+  commentstyle=\color{purple!40!black}\ttfamily,
+  stringstyle=\color{orange}\ttfamily,
+  sensitive=true
+}
+
+% https://gist.github.com/ed-cooper/1927af4ccac39b083440d436d018d253
+\definecolor{jdelim}{RGB}{20,105,176}
+\definecolor{jnumb}{RGB}{106, 10, 32}
+\definecolor{jstring}{rgb}{0.08,0.08,0.08}
+
+\lstdefinelanguage{json}{
+    %numbers=left,
+    %numberstyle=\small,
+    frame=single,
+    rulecolor=\color{black},
+    showspaces=false,
+    showtabs=false,
+	tabsize=4,
+    breaklines=true,
+    postbreak=\raisebox{0ex}[0ex][0ex]{\ensuremath{\color{gray}\hookrightarrow\space}},
+    breakatwhitespace=true,
+    basicstyle=\ttfamily\small,
+    upquote=true,
+    morestring=[b]",
+    stringstyle=\color{jstring},
+	literate=
+     *{0}{{{\color{jnumb}0}}}{1}
+      {1}{{{\color{jnumb}1}}}{1}
+      {2}{{{\color{jnumb}2}}}{1}
+      {3}{{{\color{jnumb}3}}}{1}
+      {4}{{{\color{jnumb}4}}}{1}
+      {5}{{{\color{jnumb}5}}}{1}
+      {6}{{{\color{jnumb}6}}}{1}
+      {7}{{{\color{jnumb}7}}}{1}
+      {8}{{{\color{jnumb}8}}}{1}
+      {9}{{{\color{jnumb}9}}}{1}
+      {\{}{{{\color{jdelim}{\{}}}}{1}
+      {\}}{{{\color{jdelim}{\}}}}}{1}
+      {[}{{{\color{jdelim}{[}}}}{1}
+      {]}{{{\color{jdelim}{]}}}}{1}
+	  ,
+}
+% The "literate" above can define rules for string translation. If started with an asterisk, only characters outside strings are replaced. 
+% Unfortunately, listings cannot show higher UTF8 chars with diacritics. The Samoan Skycultures example had to be reduced to 
+% showing non-diacritic letters. A translation like this would be possible, but only if the asterix was given up, then coloring numbers in the strings. 
+%     {iIi}{i'i}{3}
+
+
 % It seems the lstenvironments are much too complicated or need big efforts for decorating in HTML/CSS. Just replace by something simpler.
 % We must repeat the same definitions with small and scriptsize (executed in PDF only), and later remove the optional size argument. 							 
 \ifhtlatex
@@ -167,30 +247,25 @@
 \DefineVerbatimEnvironment{configfileScr}{Verbatim}{frame=single}
 \DefineVerbatimEnvironment{script}{Verbatim}{numbers=left,frame=single}
 \else
-\lstnewenvironment{commands}[1][\small]{\lstset{language=sh,basicstyle=\ttfamily#1,%
+\lstnewenvironment{commands}[1][\small]{\lstset{language=sh,basicstyle=\ttfamily#1,showstringspaces=false,%
                                      backgroundcolor=\color{black!5},frame=leftline,rulecolor=\color{blue},framerule=1pt}%
                              }{}%
-\lstnewenvironment{commandsScr}[1][\scriptsize]{\lstset{language=sh,basicstyle=\ttfamily#1,%
+\lstnewenvironment{commandsScr}[1][\scriptsize]{\lstset{language=sh,basicstyle=\ttfamily#1,showstringspaces=false,%
                                      backgroundcolor=\color{black!5},frame=leftline,rulecolor=\color{blue},framerule=1pt}%
                              }{}%
-\lstnewenvironment{configfile}[1][\small]{\lstset{language=sh,basicstyle=\ttfamily#1,%
+\lstnewenvironment{configfile}[1][\small]{\lstset{language=sh,basicstyle=\ttfamily#1,showstringspaces=false,%
                                    backgroundcolor=\color{black!5},frame=shadowbox,rulecolor=\color{blue},framerule=1pt}%
                              }{}%
-\lstnewenvironment{configfileScr}[1][\scriptsize]{\lstset{language=sh,basicstyle=\ttfamily#1,%
+\lstnewenvironment{configfileScr}[1][\scriptsize]{\lstset{language=sh,basicstyle=\ttfamily#1,showstringspaces=false,%
                                    backgroundcolor=\color{black!5},frame=shadowbox,rulecolor=\color{blue},framerule=1pt}%
                              }{}%
-\lstnewenvironment{script}{\lstset{language=VBScript,%                                    
-                               basicstyle=\fontfamily{pcr}\selectfont,%
+\lstnewenvironment{jsonfile}[1][\small]{\lstset{inputencoding=utf8,language=json,basicstyle=\ttfamily#1,showstringspaces=false,%
+                                   backgroundcolor=\color{black!5},frame=shadowbox,rulecolor=\color{blue},framerule=1pt}%
+                             }{}%
+\lstnewenvironment{script}{\lstset{language=JavaScript,                   
                                backgroundcolor=\color{black!5},%
                                frame=leftline,%
-                               keepspaces=true,%
                                rulecolor=\color{blue},%
-                               showstringspaces=false,
-                               keywordstyle=\bfseries\color{green!40!black},%
-                               commentstyle=\itshape\color{purple!40!black},%
-                               identifierstyle=\color{blue},%
-                               stringstyle=\color{orange},%
-                               escapeinside={(*}{*)},%
                                framerule=1pt}%
                          }{}%
 \fi
@@ -715,6 +790,7 @@ innerbottommargin=5pt]{cBox}
 \makeatother
 
 \usepackage{marvosym}% For the Zodiac symbols, \Aries etc.
+\usepackage{wasysym}% For \diameter etc.
 \usepackage{tocvsec2} % Allows fine-tuning TOC depth. (to suppress GPL sections in TOC but have them still numbered)
 %\newenvironment{commands}{\begin{wBox}\begin{Verbatim}}{\end{Verbatim}\end{wBox}}
 %\DefineVerbatimEnvironment{commands}{\begin{wBox}\begin{Verbatim}}{\end{Verbatim}\end{wBox}}
@@ -725,7 +801,7 @@ innerbottommargin=5pt]{cBox}
 
 
 \ifpdf
- \usepackage[os=win]{menukeys}% For the menu, keycaps, etc. This reqiures the updated catoptions.sty.
+ \usepackage[os=win]{menukeys}% For the menu, keycaps, etc. This requires the updated catoptions.sty.
  %% Keypress buttons. This is just a font change now, but can be a boxed key or such.
  % Prefer using menukeys.
  \newcommand{\key}[1]{\keys{#1}}
@@ -757,6 +833,21 @@ innerbottommargin=5pt]{cBox}
 %----------------------------------------------------------------------------------------
 %	HYPERLINKS IN THE DOCUMENTS. These packages should be last, else some PDF bookmarks fail!
 %----------------------------------------------------------------------------------------
+
+% Redefines to create commas between footnote marks. Does not always work, though, and causes missing PDF links. TODO: Fix this! 
+% https://tex.stackexchange.com/questions/554074/what-is-the-correct-way-to-have-commas-between-footnotes-and-prevent-footnote
+% \let\oldFootnote\footnote
+% \let\oldFootref\footref
+% \newcommand\nextToken\relax
+% \renewcommand\footnote[1]{%
+%     \oldFootnote{#1}\futurelet\nextToken\isFootnoteOrFootref}
+% \renewcommand\footref[1]{%
+%     \oldFootref{#1}\futurelet\nextToken\isFootnoteOrFootref}
+% \newcommand\isFootnoteOrFootref{%
+%     \ifx\footnote\nextToken\textsuperscript{,}\fi%
+% 	\ifx\footref\nextToken\textsuperscript{,}\fi}
+
+%\usepackage[dont-mess-around]{fnpct}
 
 \ifpdf
 \usepackage{xurl}% will break long URLs also with pdflatex.

@@ -28,9 +28,9 @@
 #include "Rts2/TelescopeClientJsonRts2.hpp"
 #include "Lx200/TelescopeClientDirectLx200.hpp"
 #include "NexStar/TelescopeClientDirectNexStar.hpp"
-#include "INDI/TelescopeClientINDI.hpp"
 #include "StelTranslator.hpp"
 #include "StelCore.hpp"
+#include "StelMainView.hpp"
 
 #include <cmath>
 
@@ -41,9 +41,16 @@
 #include <QString>
 #include <QTcpSocket>
 #include <QTextStream>
+#include <QMessageBox>
 
-#ifdef Q_OS_WIN
+#ifdef ENABLE_INDI
+	#include "INDI/TelescopeClientINDI.hpp"
+#endif
+
+#if defined(Q_OS_WIN)
+	#if QT_VERSION<QT_VERSION_CHECK(6,0,0)
 	#include "ASCOM/TelescopeClientASCOM.hpp"
+	#endif
 	#include <Windows.h> // GetSystemTimeAsFileTime()
 #else
 	#include <sys/time.h>
@@ -67,13 +74,13 @@ TelescopeClient *TelescopeClient::create(const QString &url)
 	}
 	else
 	{
-		qWarning() << "WARNING - telescope definition" << url << "not recognised";
+		qWarning() << "Telescope definition" << url << "not recognised";
 		return nullptr;
 	}
 
 	const TelescopeControl::Equinox eq = (equinox == "JNow" ? TelescopeControl::EquinoxJNow : TelescopeControl::EquinoxJ2000);
 
-	qDebug() << "Creating telescope" << url << "; name/type/equinox/params:" << name << type << ((eq == TelescopeControl::EquinoxJNow) ? "JNow" : "J2000") << params;
+	qInfo() << "Creating telescope" << url << "; name/type/equinox/params:" << name << type << ((eq == TelescopeControl::EquinoxJNow) ? "JNow" : "J2000") << params;
 
 	TelescopeClient * newTelescope = nullptr;
 	
@@ -89,7 +96,7 @@ TelescopeClient *TelescopeClient::create(const QString &url)
 	{
 		newTelescope = new TelescopeClientJsonRts2(name, params, eq);
 	}
-	else if (type == "TelescopeServerLx200") //BM: One of the rare occasions of painless extension
+	else if (type == "TelescopeServerLx200")
 	{
 		newTelescope= new TelescopeClientDirectLx200(name, params, eq);
 	}
@@ -97,11 +104,13 @@ TelescopeClient *TelescopeClient::create(const QString &url)
 	{
 		newTelescope= new TelescopeClientDirectNexStar(name, params, eq);
 	}
+	#ifdef ENABLE_INDI
 	else if (type == "INDI")
 	{
 		newTelescope = new TelescopeClientINDI(name, params);
 	}
-	#ifdef Q_OS_WIN
+	#endif
+	#if defined(Q_OS_WIN) && QT_VERSION<QT_VERSION_CHECK(6,0,0)
 	else if (type == "ASCOM")
 	{
 		newTelescope = new TelescopeClientASCOM(name, params, eq);
@@ -109,7 +118,7 @@ TelescopeClient *TelescopeClient::create(const QString &url)
 	#endif
 	else
 	{
-		qWarning() << "WARNING - unknown telescope type" << type << "- not creating a telescope object for url" << url;
+		qWarning() << "Unknown telescope type" << type << "- not creating a telescope object for url" << url;
 	}
 	
 	if (newTelescope && !newTelescope->isInitialized())
@@ -140,6 +149,12 @@ QString TelescopeClient::getInfoString(const StelCore* core, const InfoStringGro
 	postProcessInfoString(str, flags);
 
 	return str;
+}
+
+void TelescopeClient::telescopeAbortSlew()
+{
+	qWarning() << "Telescope" << getID() << "does not support AbortSlew()!";
+	QMessageBox::critical(&StelMainView::getInstance(), q_("QUICK!"), q_("This Telescope does not support Abort command!"));
 }
 
 void TelescopeClient::move(double angle, double speed)
@@ -196,11 +211,11 @@ TelescopeTCP::TelescopeTCP(const QString &name, const QString &params, Telescope
 	}
 	else
 	{
-		qWarning() << "WARNING - incorrect TelescopeTCP parameters";
+		qWarning() << "Incorrect TelescopeTCP parameters";
 		return;
 	}
 
-	qDebug() << "TelescopeTCP parameters host, port, time_delay:" << host << port << time_delay;
+	qInfo() << "TelescopeTCP parameters host, port, time_delay:" << host << port << time_delay;
 	
 	if (time_delay <= 0 || time_delay > 10000000)
 	{
@@ -237,7 +252,11 @@ TelescopeTCP::TelescopeTCP(const QString &name, const QString &params, Telescope
 	interpolatedPosition.reset();
 	
 	connect(tcpSocket, SIGNAL(connected()), this, SLOT(socketConnected()));
+#if (QT_VERSION>=QT_VERSION_CHECK(5,15,0))
+	connect(tcpSocket, SIGNAL(errorOccurred(QAbstractSocket::SocketError)), this, SLOT(socketFailed(QAbstractSocket::SocketError)));
+#else
 	connect(tcpSocket, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(socketFailed(QAbstractSocket::SocketError)));
+#endif
 }
 
 void TelescopeTCP::hangup(void)
@@ -277,8 +296,8 @@ void TelescopeTCP::telescopeGoto(const Vec3d &j2000Pos, StelObjectP selectObject
 		//Workaround for the discrepancy in precision between Windows/Linux/PPC Macs and Intel Macs:
 		const double ra = (ra_signed >= 0) ? ra_signed : (ra_signed + 2.0 * M_PI);
 		const double dec = atan2(position[2], std::sqrt(position[0]*position[0]+position[1]*position[1]));
-		unsigned int ra_int = static_cast<unsigned int>(floor(0.5 + ra*((static_cast<unsigned int>(0x80000000))/M_PI)));
-		int dec_int = static_cast<int>(floor(0.5 + dec*((static_cast<unsigned int>(0x80000000))/M_PI)));
+		unsigned int ra_int = static_cast<unsigned int>(std::floor(0.5 + ra*((static_cast<unsigned int>(0x80000000))/M_PI)));
+		int dec_int = static_cast<int>(std::floor(0.5 + dec*((static_cast<unsigned int>(0x80000000))/M_PI)));
 		// length of packet:
 		*writeBufferEnd++ = 20;
 		*writeBufferEnd++ = 0;
@@ -323,13 +342,6 @@ void TelescopeTCP::telescopeGoto(const Vec3d &j2000Pos, StelObjectP selectObject
 	{
 		qDebug() << "TelescopeTCP(" << name << ")::telescopeGoto: "<< "communication is too slow, I will ignore this command";
 	}
-}
-
-void TelescopeTCP::telescopeSync(const Vec3d &j2000Pos, StelObjectP selectObject)
-{
-	Q_UNUSED(j2000Pos)
-	Q_UNUSED(selectObject)
-	return;
 }
 
 void TelescopeTCP::performWriting(void)

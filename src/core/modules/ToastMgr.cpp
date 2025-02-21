@@ -26,7 +26,6 @@
 #include "StelCore.hpp"
 #include "StelApp.hpp"
 #include "StelTranslator.hpp"
-#include "StelModuleMgr.hpp"
 #include "StelSkyLayerMgr.hpp"
 
 #include <QSettings>
@@ -97,7 +96,7 @@ void ToastMgr::setFlagShow(const bool displayed)
 	if (*fader != displayed)
 	{
 		*fader = displayed;
-		GETSTELMODULE(StelSkyLayerMgr)->setFlagShow(!displayed);
+		StelApp::immediateSave("astro/flag_toast_survey", displayed);
 		emit surveyDisplayedChanged(displayed);
 	}
 }

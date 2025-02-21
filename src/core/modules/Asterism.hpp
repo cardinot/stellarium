@@ -32,6 +32,7 @@
 
 class StarMgr;
 class StelPainter;
+class QJsonObject;
 
 //! @class Asterism
 //! The Asterism class models a grouping of stars in a Sky Culture.
@@ -45,7 +46,7 @@ class Asterism : public StelObject
 private:
 	static const QString ASTERISM_TYPE;
 	Asterism();
-	~Asterism() Q_DECL_OVERRIDE;
+	~Asterism() override;
 
 	// StelObject method to override
 	//! Get a string with data about the Asterism.
@@ -54,17 +55,17 @@ private:
 	//! @param core the StelCore object
 	//! @param flags a set of InfoStringGroup items to include in the return value.
 	//! @return a QString a description of the constellation.
-	virtual QString getInfoString(const StelCore*, const InfoStringGroup& flags) const Q_DECL_OVERRIDE;
+	QString getInfoString(const StelCore*, const InfoStringGroup& flags) const override;
 
 	//! Get the module/object type string.
 	//! @return "Asterism"
-	virtual QString getType() const Q_DECL_OVERRIDE {return ASTERISM_TYPE;}
-	virtual QString getObjectType() const Q_DECL_OVERRIDE {return N_("asterism"); }
-	virtual QString getObjectTypeI18n() const Q_DECL_OVERRIDE {return q_(getObjectType()); }
-	virtual QString getID() const Q_DECL_OVERRIDE { return abbreviation; }
+	QString getType() const override {return ASTERISM_TYPE;}
+	QString getObjectType() const override {return N_("asterism"); }
+	QString getObjectTypeI18n() const override {return q_(getObjectType()); }
+	QString getID() const override { return abbreviation; }
 
 	//! observer centered J2000 coordinates.
-	virtual Vec3d getJ2000EquatorialPos(const StelCore*) const Q_DECL_OVERRIDE {return XYZname;}
+	Vec3d getJ2000EquatorialPos(const StelCore*) const override {return XYZname;}
 
 	//! @param record string containing the following whitespace
 	//! separated fields: abbreviation - a three character abbreviation
@@ -73,15 +74,15 @@ private:
 	//! asterism.
 	//! @param starMgr a pointer to the StarManager object.
 	//! @return false if can't parse record, else true.
-	bool read(const QString& record, StarMgr *starMgr);
+	bool read(const QJsonObject& data, StarMgr *starMgr);
 
 	//! Draw the asterism name
 	void drawName(StelPainter& sPainter) const;
 
 	//! Get the translated name for the Asterism.
-	QString getNameI18n() const Q_DECL_OVERRIDE {return nameI18;}
+	QString getNameI18n() const override {return nameI18;}
 	//! Get the English name for the Asterism.
-	QString getEnglishName() const Q_DECL_OVERRIDE {return englishName;}
+	QString getEnglishName() const override {return englishName;}
 	//! Draw the lines for the Asterism.
 	//! This method uses the coords of the stars (optimized for use through
 	//! the class AsterismMgr only).
@@ -122,13 +123,21 @@ private:
 	//! Direction vector pointing on constellation name drawing position
 	Vec3d XYZname;
 	Vec3d XYname;
-	//! Number of segments in the lines
-	unsigned int numberOfSegments;
+	enum class Type
+	{
+		RayHelper,          //!< Ray helper
+		Asterism,           //!< An asterism with lines between HIP/Gaia stars
+		TelescopicAsterism, //!< An asterism with lines defined by J2000.0 coordinates
+	};
 	//! Type of asterism
-	int typeOfAsterism;
+	Type typeOfAsterism = Type::Asterism;
 	bool flagAsterism;
 	//! List of stars forming the segments
-	StelObjectP* asterism;
+	std::vector<StelObjectP> asterism;
+	//! In case this describes a single-star asterism (i.e. just one line segment that starts and ends at the same star),
+	//! or we have a line segment with such single star somewhere within the asterism,
+	//! we will draw a circle with this opening radius.
+	double singleStarAsterismRadius;
 
 	SphericalCap boundingCap;
 

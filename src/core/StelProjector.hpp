@@ -186,7 +186,7 @@ public:
 	virtual float viewScalingFactorToFov(float vsf) const { return vsf;}
 
 	//! Get the current state of the flag which decides whether to
-	//! arrage labels so that they are aligned with the bottom of a 2d
+	//! arrange labels so that they are aligned with the bottom of a 2d
 	//! screen, or a 3d dome.
 	bool getFlagGravityLabels() const;
 
@@ -221,6 +221,10 @@ public:
 
 	//! Get size of a radian in pixels at the center of the viewport disk
 	float getPixelPerRadAtCenter() const;
+
+	//! Get the scale factor for objects drawn on screen. This takes into account
+	//! font size and the OS-given high-DPI scaling setting (see #getDevicePixelsPerPixel).
+	float getScreenScale() const;
 
 	//! Get the current FOV diameter in degrees
 	float getFov() const;
@@ -351,10 +355,20 @@ protected:
 	//! Determine whether a great circle connection p1 and p2 intersects with a projection discontinuity.
 	//! For many projections without discontinuity, this should return always false, but for other like
 	//! cylindrical projection it will return true if the line cuts the wrap-around line (i.e. at lon=180 if the observer look at lon=0).
-	virtual bool intersectViewportDiscontinuityInternal(const Vec3d& p1, const Vec3d& p2) const {return false;}
+	virtual bool intersectViewportDiscontinuityInternal(const Vec3d& p1, const Vec3d& p2) const
+	{
+		Q_UNUSED(p1)
+		Q_UNUSED(p2)
+		return false;
+	}
 
 	//! Determine whether a cap intersects with a projection discontinuity.
-	virtual bool intersectViewportDiscontinuityInternal(const Vec3d& capN, double capD) const {return false;}
+	virtual bool intersectViewportDiscontinuityInternal(const Vec3d& capN, double capD) const
+	{
+		Q_UNUSED(capN)
+		Q_UNUSED(capD)
+		return false;
+	}
 
 	//! Initialize the bounding cap.
 	virtual void computeBoundingCap();

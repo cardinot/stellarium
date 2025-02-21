@@ -31,13 +31,18 @@ target_link_libraries(TelescopeControl_gui
     Qt${QT_VERSION_MAJOR}::Network
     Qt${QT_VERSION_MAJOR}::Gui
     TelescopeControl_common
-    TelescopeControl_INDI    
     )
 
-IF(WIN32)
+IF(ENABLE_INDI)
+    target_link_libraries(TelescopeControl_gui
+        TelescopeControl_INDI
+    )
+ENDIF(ENABLE_INDI)
+
+if(WIN32 AND (${QT_VERSION_MAJOR} EQUAL "5"))
 target_link_libraries(TelescopeControl_gui
     TelescopeControl_ASCOM
     )
-ENDIF(WIN32)
+ENDif(WIN32 AND (${QT_VERSION_MAJOR} EQUAL "5"))
 
 SET_TARGET_PROPERTIES(TelescopeControl_gui PROPERTIES FOLDER "plugins/TelescopeControl")

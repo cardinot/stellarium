@@ -40,7 +40,7 @@ public:
 	OcularsGuiPanel(Oculars* ocularsPlugin,
 			QGraphicsWidget * parent = Q_NULLPTR,
 			Qt::WindowFlags wFlags = Qt::Widget);
-	~OcularsGuiPanel() Q_DECL_OVERRIDE;
+	~OcularsGuiPanel() override;
 
 public slots:
 	//! Show only the controls used with an ocular overlay.
@@ -50,22 +50,28 @@ public slots:
 	//! Hide the controls, leaving only the button bar.
 	void foldGui();
 
+	void setFontSize(int size);
+
 private slots:
 	//! Update the position of the widget within the parent.
 	//! Tied to the parent's geometryChanged() signal.
 	void updatePosition();
 
-	//! Updates the information shown when an ocular overlay is displayed
-	void updateOcularControls();
 	//! Updates the information shown when a sensor overlay is displayed
 	void updateCcdControls();
+	//! Updates the information that depends on the current lens
+	void updateLensControls();
+	//! Updates the information shown when an ocular overlay is displayed
+	void updateOcularControls();
 	//! Updates the information that depends on the current telescope.
 	//! Called in both updateOcularControls() and updateCcdControls().
 	void updateTelescopeControls();
-	//! Updates the information that depends on the current lens
-	void updateLensControls();
+
 	//! Sets the color scheme (day/night mode)
 	void setColorScheme(const QString& schemeName);
+
+	void updateLayout();
+	void updateRotationButtons();
 
 private:
 	Oculars* ocularsPlugin;
@@ -115,28 +121,37 @@ private:
 	QGraphicsTextItem* fieldTelescopeName;
 	QGraphicsTextItem* fieldMagnification;
 	QGraphicsTextItem* fieldExitPupil;
+	QGraphicsTextItem* fieldTwilightFactor;
+	QGraphicsTextItem* fieldRelativeBrightness;
+	QGraphicsTextItem* fieldAdlerIndex;
+	QGraphicsTextItem* fieldBishopIndex;
 	QGraphicsTextItem* fieldFov;
 	QGraphicsTextItem* fieldRayleighCriterion;
 	QGraphicsTextItem* fieldDawesCriterion;
 	QGraphicsTextItem* fieldAbbeyCriterion;
 	QGraphicsTextItem* fieldSparrowCriterion;
 	QGraphicsTextItem* fieldVisualResolution;
+	QGraphicsTextItem* fieldLimitMagnitude;
 
 	//Sensor frame rotation controls
-	StelButton* rotateCcdMinus15Button;
-	StelButton* rotateCcdMinus5Button;
-	StelButton* rotateCcdMinus1Button;
-	StelButton* resetCcdRotationButton;
-	StelButton* rotateCcdPlus1Button;
-	StelButton* rotateCcdPlus5Button;
-	StelButton* rotateCcdPlus15Button;
-	StelButton* rotatePrismMinus15Button;
-	StelButton* rotatePrismMinus5Button;
-	StelButton* rotatePrismMinus1Button;
-	StelButton* resetPrismRotationButton;
-	StelButton* rotatePrismPlus1Button;
-	StelButton* rotatePrismPlus5Button;
-	StelButton* rotatePrismPlus15Button;
+	StelButton* rotateCcdMinus90Button = nullptr;
+	StelButton* rotateCcdMinus15Button = nullptr;
+	StelButton* rotateCcdMinus5Button = nullptr;
+	StelButton* rotateCcdMinus1Button = nullptr;
+	StelButton* resetCcdRotationButton = nullptr;
+	StelButton* rotateCcdPlus1Button = nullptr;
+	StelButton* rotateCcdPlus5Button = nullptr;
+	StelButton* rotateCcdPlus15Button = nullptr;
+	StelButton* rotateCcdPlus90Button = nullptr;
+	StelButton* rotatePrismMinus90Button = nullptr;
+	StelButton* rotatePrismMinus15Button = nullptr;
+	StelButton* rotatePrismMinus5Button = nullptr;
+	StelButton* rotatePrismMinus1Button = nullptr;
+	StelButton* resetPrismRotationButton = nullptr;
+	StelButton* rotatePrismPlus1Button = nullptr;
+	StelButton* rotatePrismPlus5Button = nullptr;
+	StelButton* rotatePrismPlus15Button = nullptr;
+	StelButton* rotatePrismPlus90Button = nullptr;
 
 	//! Sets the visibility of the ocular name label and the associated buttons.
 	void setOcularControlsVisible(bool show);
